@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- When finger is touching -->
+    <item android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <!-- Fill color -->
+            <solid android:color="@color/button_press_solid_color" />
+            <!-- Set the four corners of the button to be rounded -->
+            <!-- android:radius corner radius -->
+            <corners android:radius="10dp" />
+            <!-- padding: spacing between button text and button border -->
+            <padding
+                android:left="1dp"
+                android:top="1dp"
+                android:right="1dp"
+                android:bottom="1dp"
+                />
+        </shape>
+    </item>
+    <!-- When button is disabled -->
+    <item android:state_enabled="false">
+        <shape android:shape="rectangle">
+            <!-- Fill color -->
+            <stroke
+                android:width="1dp"
+                android:color="@color/button_disable_strocke_color" />
+
+            <gradient
+                android:angle="90"
+                android:startColor="#868687"
+                android:endColor="@color/black"
+                android:type="linear" />
+            <!-- Set the four corners of the button to be rounded -->
+            <!-- android:radius corner radius -->
+            <corners android:radius="10dp" />
+            <!-- padding: spacing between button text and button border -->
+            <padding
+                android:left="1dp"
+                android:top="1dp"
+                android:right="1dp"
+                android:bottom="1dp"
+                />
+        </shape>
+    </item>
+
+    <!-- Default (before touch) button -->
+    <item>
+        <shape android:shape="rectangle">
+            <!-- Fill color -->
+            <stroke
+                android:width="0.5dp"
+                android:color="#000649BB" />
+
+            <gradient
+                android:angle="90"
+                android:startColor="#00FFFFFF"
+                android:endColor="#00000000"
+                android:type="linear" />
+            <!-- Set the four corners of the button to be rounded -->
+            <!-- android:radius corner radius -->
+            <corners android:radius="10dp" />
+            <!-- padding: spacing between button text and button border -->
+            <padding
+                android:left="0dp"
+                android:top="0dp"
+                android:right="0dp"
+                android:bottom="0dp"
+                />
+        </shape>
+    </item>
+
+</selector>

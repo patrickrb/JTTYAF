@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+
+    <style name="HelpDialog" parent="android:style/Theme.Dialog">
+        <!-- Background color and transparency -->
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <!-- Whether to remove the title -->
+        <item name="android:windowNoTitle">true</item>
+        <!-- Whether to remove the border -->
+        <item name="android:windowFrame">@null</item>
+        <!-- Whether to float above the activity -->
+        <item name="android:windowIsFloating">true</item>
+        <!-- Whether to dim the background -->
+        <item name="android:backgroundDimEnabled">true</item>
+    </style>
+
+    <style name="InitDataDialog" parent="android:style/Theme.Dialog">
+        <!-- Background color and transparency -->
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <!-- Whether to remove the title -->
+        <item name="android:windowNoTitle">true</item>
+        <!-- Whether to remove the border -->
+        <item name="android:windowFrame">@null</item>
+        <!-- Whether to float above the activity -->
+        <item name="android:windowIsFloating">true</item>
+        <!-- Whether to dim the background -->
+        <item name="android:backgroundDimEnabled">true</item>
+    </style>
+
+    <style name="ShareProgressDialog" parent="android:style/Theme.Material.Dialog">
+        <!-- Background color and transparency -->
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <!-- Whether to remove the title -->
+        <item name="android:windowNoTitle">true</item>
+        <!-- Whether to remove the border -->
+        <item name="android:windowFrame">@null</item>
+        <!-- Whether to float above the activity -->
+        <item name="android:windowIsFloating">true</item>
+        <!-- Whether to dim the background -->
+        <item name="android:backgroundDimEnabled">true</item>
+        <!-- Window width -->
+        <item name="android:windowMinWidthMajor">80%</item>
+        <item name="android:windowMinWidthMinor">80%</item>
+    </style>
+
+
+
+</resources>

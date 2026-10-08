@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/help_dialog_style"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Export QSOs"
+        android:textColor="@color/help_dialog_text_color"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/exportSummaryTextView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textColor="@color/help_dialog_text_color"
+        android:textSize="13sp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Format"
+        android:textColor="@color/help_dialog_text_color"
+        android:textSize="12sp" />
+
+    <RadioGroup
+        android:id="@+id/exportFormatGroup"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <RadioButton
+            android:id="@+id/exportFormatAdif"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:buttonTint="@color/white"
+            android:checked="true"
+            android:text="ADIF (.adi)"
+            android:textColor="@color/help_dialog_text_color" />
+
+        <RadioButton
+            android:id="@+id/exportFormatCsv"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:buttonTint="@color/white"
+            android:enabled="false"
+            android:text="CSV (coming soon)"
+            android:textColor="@color/help_dialog_text_color" />
+    </RadioGroup>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="From (optional)"
+                android:textColor="@color/help_dialog_text_color"
+                android:textSize="11sp" />
+            <EditText
+                android:id="@+id/exportDateStart"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:contentDescription="From date, tap the calendar icon or type YYYYMMDD"
+                android:drawableEnd="@drawable/ic_calendar_today"
+                android:drawablePadding="4dp"
+                android:hint="YYYYMMDD"
+                android:inputType="number"
+                android:maxLength="8"
+                android:textColor="@color/help_dialog_text_color"
+                android:textColorHint="@color/help_dialog_text_color" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="To (optional)"
+                android:textColor="@color/help_dialog_text_color"
+                android:textSize="11sp" />
+            <EditText
+                android:id="@+id/exportDateEnd"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:contentDescription="To date, tap the calendar icon or type YYYYMMDD"
+                android:drawableEnd="@drawable/ic_calendar_today"
+                android:drawablePadding="4dp"
+                android:hint="YYYYMMDD"
+                android:inputType="number"
+                android:maxLength="8"
+                android:textColor="@color/help_dialog_text_color"
+                android:textColorHint="@color/help_dialog_text_color" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/exportProgressTextView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:textColor="@color/help_dialog_text_color"
+        android:textSize="12sp" />
+
+    <ProgressBar
+        android:id="@+id/exportProgressBar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:gravity="end"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/exportCancelButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:text="Cancel"
+            android:textColor="@color/help_dialog_text_color" />
+
+        <Button
+            android:id="@+id/exportSaveButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:text="Save to Downloads"
+            android:textColor="@color/help_dialog_text_color" />
+
+        <Button
+            android:id="@+id/exportShareButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Share"
+            android:textColor="@color/help_dialog_text_color" />
+    </LinearLayout>
+
+</LinearLayout>

@@ -1,0 +1,5 @@
+About QRZ Sync
+
+This feature helps you upload your QSO to QRZ.com immediately after completing a contact.
+
+You need to obtain your API KEY from the QRZ logbook and enter it in the app.
