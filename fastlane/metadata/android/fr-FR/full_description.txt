@@ -1,0 +1,34 @@
+JTTYAF apporte JTTY, le mode numérique clavier à clavier introduit dans WSJT-X 3.2, sur votre téléphone Android. Reliez le téléphone à votre transceiver et faites des QSO façon RTTY avec une forme d'onde codée moderne : chaque trame est protégée par un CRC et un code convolutif, si bien que les signaux faibles s'impriment proprement là où le RTTY classique remplirait l'écran de caractères erronés.
+
+RÉCEPTION
+• Impression en direct : chaque message JTTY décodé dans la bande passante défile à l'arrivée, avec l'heure, la fréquence audio et le rapport signal/bruit
+• Décodage de toute la bande passante (300–2700 Hz) avec soustraction des signaux, pour imprimer aussi les stations superposées, ou décodage au seul décalage RX pour économiser la batterie
+• Chute d'eau avec le marqueur de décalage RX/TX ; touchez pour réaccorder
+• Réception en arrière-plan : un service de premier plan continue d'écouter écran éteint
+• Tout ce qui est reçu et émis est enregistré dans un fichier ALL.TXT de type WSJT-X
+
+ÉMISSION
+• TX au clavier : saisissez jusqu'à 80 caractères et appuyez sur Envoyer ; une indication montre le nombre de trames nécessaires
+• Macros F1–F8 avec %M (mon indicatif), %H (indicatif DX) et %E (599 plus numéro de série) ; appui long pour modifier
+• Profils de concours : échanges Général, RTTY Roundup et Field Day
+• Touchez une ligne reçue pour choisir l'indicatif DX, puis Log QSO pour l'écrire dans le carnet et incrémenter votre numéro de série
+
+PILOTAGE DU POSTE
+• Commande CAT par USB, Bluetooth ou réseau pour Icom, Yaesu, Kenwood, Elecraft, Xiegu, FlexRadio, truSDX et de nombreux postes pris en charge par hamlib
+• Audio USB direct vers le poste, ou audio par le micro et le haut-parleur du téléphone
+• Sélecteur de bande avec les fréquences JTTY, niveau TX par bande, porteuse d'accord, niveau automatique par ALC et protection ROS
+
+CARNET DE TRAFIC
+• QSO enregistrés avec MODE=JTTY, export ADIF
+• Envoi vers Cloudlog, Wavelog, QRZ Logbook et World Radio League
+• Statistiques et suivi des diplômes
+• Locator GPS optionnel pour que votre carré Maidenhead vous suive en portable
+
+CONFIDENTIALITÉ
+Pas de publicité, pas de pistage. Les rapports de plantage sont désactivés par défaut et ne fonctionnent que si vous les activez dans les Paramètres avancés. Votre indicatif et votre position ne figurent jamais dans les rapports de plantage.
+
+OPEN SOURCE
+JTTYAF est sous licence MIT. Le codec JTTY est une implémentation indépendante écrite à partir de la description publiée du protocole. Code source et suivi des problèmes : github.com/patrickrb/JTTYAF
+
+PRÉREQUIS
+Une licence radioamateur valide, un transceiver HF et une liaison audio ou USB entre le téléphone et la radio. JTTYAF est un compagnon pour votre poste ; il n'émet pas par lui-même.

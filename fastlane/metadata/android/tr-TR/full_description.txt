@@ -1,0 +1,34 @@
+JTTYAF, WSJT-X 3.2 ile tanıtılan klavyeden klavyeye dijital mod JTTY'yi Android telefonunuza getirir. Telefonunuzu telsizinize bağlayın ve modern kodlanmış bir dalga biçimiyle RTTY tarzı QSO yapın: her çerçeve CRC ve evrişimsel kodla korunur, böylece klasik RTTY'nin ekranı çöple dolduracağı yerde zayıf sinyaller temiz yazdırılır.
+
+ALMA
+• Canlı yazdırma: geçiş bandındaki her çözülen JTTY mesajı geldiği anda zaman, ses frekansı ve sinyal/gürültü oranıyla görünür
+• Sinyal çıkarmalı tam bant çözme (300–2700 Hz) sayesinde üst üste binen istasyonlar da yazdırılır; ya da pil tasarrufu için yalnızca RX kaydırmanızda çözme
+• RX/TX kaydırma işaretli şelale; yeniden ayarlamak için dokunun
+• Arka planda alma: ön plan servisi ekran kapalıyken dinlemeye devam eder
+• Alınan ve gönderilen her şey WSJT-X tarzı bir ALL.TXT dosyasına kaydedilir
+
+GÖNDERME
+• Klavyeden TX: en fazla 80 karakter yazıp Gönder'e basın; bir ipucu kaç çerçeve gerektiğini gösterir
+• %M (çağrı işaretim), %H (DX çağrı işareti) ve %E (599 artı seri numarası) ile F1–F8 makroları; düzenlemek için uzun basın
+• Yarışma profilleri: Genel, RTTY Roundup ve Field Day değişimleri
+• DX çağrı işaretini seçmek için alınan bir satıra dokunun, ardından günlüğe yazmak ve seri numaranızı ilerletmek için QSO Kaydet'e basın
+
+TELSİZ KONTROLÜ
+• Icom, Yaesu, Kenwood, Elecraft, Xiegu, FlexRadio, truSDX ve hamlib destekli birçok telsiz için USB, Bluetooth veya ağ üzerinden CAT kontrolü
+• Doğrudan telsize USB ses ya da telefonun mikrofonu ve hoparlörü üzerinden ses
+• JTTY frekanslı bant seçici, bant başına TX seviyesi, ayar taşıyıcısı, ALC otomatik seviye ve SWR koruması
+
+GÜNLÜK
+• QSO'lar MODE=JTTY ile kaydedilir, ADIF dışa aktarma
+• Cloudlog, Wavelog, QRZ Logbook ve World Radio League'e yükleme
+• İstatistikler ve ödül takibi
+• Portatif çalışmalarda Maidenhead konumunuzun sizi izlemesi için isteğe bağlı GPS grid karesi
+
+GİZLİLİK
+Reklam yok, izleme yok. Çökme raporlama varsayılan olarak kapalıdır ve yalnızca Gelişmiş Ayarlar'da açarsanız çalışır. Çağrı işaretiniz ve konumunuz çökme raporlarına hiçbir zaman eklenmez.
+
+AÇIK KAYNAK
+JTTYAF MIT lisanslıdır. JTTY kodeği, yayımlanmış protokol tanımından yazılmış bağımsız bir uygulamadır. Kaynak kodu ve sorun takibi: github.com/patrickrb/JTTYAF
+
+GEREKSİNİMLER
+Geçerli bir amatör telsiz lisansı, bir HF telsiz ve telefon ile telsiz arasında ses veya USB bağlantısı. JTTYAF telsiziniz için bir yardımcıdır; kendi başına yayın yapmaz.

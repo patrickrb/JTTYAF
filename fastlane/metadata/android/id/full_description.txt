@@ -1,0 +1,34 @@
+JTTYAF menghadirkan JTTY, mode digital keyboard-ke-keyboard yang diperkenalkan di WSJT-X 3.2, ke ponsel Android Anda. Sambungkan ponsel ke transceiver dan lakukan QSO ala RTTY dengan bentuk gelombang terkode modern: setiap frame dilindungi CRC dan kode konvolusional, sehingga sinyal lemah tercetak bersih di saat RTTY klasik akan memenuhi layar dengan karakter acak.
+
+PENERIMAAN
+• Cetak langsung: setiap pesan JTTY yang terdekode di passband muncul begitu tiba, dengan waktu, frekuensi audio, dan rasio sinyal/derau
+• Dekode seluruh passband (300–2700 Hz) dengan pengurangan sinyal, sehingga stasiun yang tumpang tindih juga tercetak, atau hanya di offset RX Anda untuk menghemat baterai
+• Waterfall dengan penanda offset RX/TX; ketuk untuk menyetel ulang
+• Penerimaan di latar belakang: layanan latar depan terus mendengarkan saat layar mati
+• Semua yang diterima dan dikirim disimpan ke berkas ALL.TXT bergaya WSJT-X
+
+PEMANCARAN
+• TX lewat keyboard: ketik hingga 80 karakter lalu tekan Kirim; petunjuk menunjukkan berapa frame yang dibutuhkan
+• Makro F1–F8 dengan %M (callsign saya), %H (callsign DX), dan %E (599 plus nomor seri); tekan lama untuk mengedit
+• Profil kontes: pertukaran Umum, RTTY Roundup, dan Field Day
+• Ketuk baris yang diterima untuk memilih callsign DX, lalu Log QSO untuk menulisnya ke logbook dan menaikkan nomor seri
+
+KONTROL RADIO
+• Kontrol CAT lewat USB, Bluetooth, atau jaringan untuk Icom, Yaesu, Kenwood, Elecraft, Xiegu, FlexRadio, truSDX, dan banyak radio yang didukung hamlib
+• Audio USB langsung ke radio, atau audio lewat mikrofon dan speaker ponsel
+• Pemilih band dengan frekuensi JTTY, level TX per band, carrier tuning, level otomatis ALC, dan proteksi SWR
+
+LOGBOOK
+• QSO dicatat dengan MODE=JTTY, ekspor ADIF
+• Unggah ke Cloudlog, Wavelog, QRZ Logbook, dan World Radio League
+• Statistik dan pelacakan award
+• Grid GPS opsional agar locator Maidenhead Anda mengikuti saat beroperasi portabel
+
+PRIVASI
+Tanpa iklan dan tanpa pelacakan. Pelaporan crash mati secara default dan hanya berjalan jika Anda mengaktifkannya di Pengaturan Lanjutan. Callsign dan lokasi Anda tidak pernah disertakan dalam laporan crash.
+
+SUMBER TERBUKA
+JTTYAF berlisensi MIT. Codec JTTY adalah implementasi independen yang ditulis dari deskripsi protokol yang dipublikasikan. Kode sumber dan pelacak masalah: github.com/patrickrb/JTTYAF
+
+PERSYARATAN
+Lisensi radio amatir yang sah, transceiver HF, dan koneksi audio atau USB antara ponsel dan radio. JTTYAF adalah pendamping radio Anda; aplikasi ini tidak memancar sendiri.

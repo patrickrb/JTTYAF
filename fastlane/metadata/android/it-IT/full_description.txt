@@ -1,0 +1,34 @@
+JTTYAF porta JTTY, il modo digitale da tastiera a tastiera introdotto in WSJT-X 3.2, sul tuo telefono Android. Collega il telefono al ricetrasmettitore e fai QSO in stile RTTY con una forma d'onda codificata moderna: ogni frame è protetto da un CRC e da un codice convoluzionale, così i segnali deboli si stampano puliti dove l'RTTY classico riempirebbe lo schermo di caratteri errati.
+
+RICEZIONE
+• Stampa live: ogni messaggio JTTY decodificato nella banda passante scorre appena arriva, con ora, frequenza audio e rapporto segnale/rumore
+• Decodifica dell'intera banda passante (300–2700 Hz) con sottrazione dei segnali, così si stampano anche le stazioni sovrapposte, oppure solo sul tuo offset RX per risparmiare batteria
+• Waterfall con il marcatore dell'offset RX/TX; tocca per risintonizzare
+• Ricezione in background: un servizio in primo piano continua ad ascoltare a schermo spento
+• Tutto ciò che viene ricevuto e trasmesso è salvato in un file ALL.TXT in stile WSJT-X
+
+TRASMISSIONE
+• TX da tastiera: scrivi fino a 80 caratteri e premi Invia; un suggerimento mostra quanti frame servono
+• Macro F1–F8 con %M (mio nominativo), %H (nominativo DX) ed %E (599 più numero progressivo); pressione lunga per modificare
+• Profili contest: scambi Generale, RTTY Roundup e Field Day
+• Tocca una riga ricevuta per scegliere il nominativo DX, poi Log QSO per scriverlo nel log e avanzare il progressivo
+
+CONTROLLO RADIO
+• Controllo CAT via USB, Bluetooth o rete per Icom, Yaesu, Kenwood, Elecraft, Xiegu, FlexRadio, truSDX e molte radio supportate da hamlib
+• Audio USB diretto alla radio, oppure audio tramite microfono e altoparlante del telefono
+• Selettore di banda con le frequenze JTTY, livello TX per banda, portante di accordo, livello automatico ALC e protezione ROS
+
+LOG
+• QSO registrati con MODE=JTTY, esportazione ADIF
+• Caricamento su Cloudlog, Wavelog, QRZ Logbook e World Radio League
+• Statistiche e tracciamento dei diplomi
+• Locatore GPS opzionale perché il tuo Maidenhead ti segua nelle uscite in portatile
+
+PRIVACY
+Nessuna pubblicità e nessun tracciamento. La segnalazione dei crash è disattivata per impostazione predefinita e funziona solo se la attivi nelle Impostazioni avanzate. Nominativo e posizione non sono mai inclusi nelle segnalazioni di crash.
+
+OPEN SOURCE
+JTTYAF è rilasciato con licenza MIT. Il codec JTTY è un'implementazione indipendente scritta a partire dalla descrizione pubblicata del protocollo. Codice sorgente e segnalazione problemi: github.com/patrickrb/JTTYAF
+
+REQUISITI
+Una licenza radioamatoriale valida, un ricetrasmettitore HF e un collegamento audio o USB tra telefono e radio. JTTYAF è un complemento della tua radio; non trasmette da solo.

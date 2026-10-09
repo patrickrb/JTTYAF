@@ -19,7 +19,7 @@ import publish_listings as pl
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 REPO_METADATA = REPO_ROOT / "fastlane" / "metadata" / "android"
-APP_RES = REPO_ROOT / "ft8af" / "app" / "src" / "main" / "res"
+APP_RES = REPO_ROOT / "jttyaf" / "app" / "src" / "main" / "res"
 
 # Android resource qualifier -> Play Console locale code. Play codes are not the
 # resource qualifiers (values-in is Indonesian, Play calls it id), so the mapping
@@ -138,7 +138,7 @@ class FakeSession:
         return FakeResponse({}, self.delete_status)
 
 
-def listing(title="FT8AF", short="short desc", full="full desc"):
+def listing(title="JTTYAF", short="short desc", full="full desc"):
     return {"title": title, "shortDescription": short, "fullDescription": full}
 
 
@@ -150,7 +150,7 @@ def captured():
         yield out, err
 
 
-def write_locale(root, locale, title="FT8AF", short="short desc", full="full desc"):
+def write_locale(root, locale, title="JTTYAF", short="short desc", full="full desc"):
     d = Path(root) / locale
     d.mkdir(parents=True, exist_ok=True)
     for fname, text in (
@@ -175,7 +175,7 @@ class ReadLocaleTest(TempTreeTest):
         listing = pl.read_locale(d)
         self.assertEqual(
             listing,
-            {"title": "FT8AF", "shortDescription": "short desc", "fullDescription": "line one\nline two"},
+            {"title": "JTTYAF", "shortDescription": "short desc", "fullDescription": "line one\nline two"},
         )
 
     def test_internal_blank_lines_are_preserved(self):
@@ -200,7 +200,7 @@ class ReadLocaleTest(TempTreeTest):
 
 class ValidateTest(unittest.TestCase):
     def test_within_limits_has_no_errors(self):
-        listing = {"title": "FT8AF", "shortDescription": "x" * 80, "fullDescription": "y" * 4000}
+        listing = {"title": "JTTYAF", "shortDescription": "x" * 80, "fullDescription": "y" * 4000}
         self.assertEqual(pl.validate("en-US", listing), [])
 
     def test_reports_each_over_limit_field_with_the_overage(self):
@@ -220,7 +220,7 @@ class ValidateTest(unittest.TestCase):
         # CJK and accented text is well under 80 characters but far over 80
         # bytes; Play counts characters, so this must pass.
         listing = {
-            "title": "FT8AF",
+            "title": "JTTYAF",
             "shortDescription": "用手机玩 FT8：解码、发射、自动记录日志，不用电脑。",
             "fullDescription": "描述",
         }
@@ -265,7 +265,7 @@ class LoadMetadataTest(TempTreeTest):
 
 
 class DiffListingTest(unittest.TestCase):
-    LOCAL = {"title": "FT8AF", "shortDescription": "new short", "fullDescription": "new full"}
+    LOCAL = {"title": "JTTYAF", "shortDescription": "new short", "fullDescription": "new full"}
 
     def test_identical_listing_has_no_diff(self):
         self.assertEqual(pl.diff_listing(self.LOCAL, dict(self.LOCAL)), {})
@@ -292,18 +292,18 @@ class DiffListingTest(unittest.TestCase):
 
 class SummarizeTest(unittest.TestCase):
     def test_unset_old_value_is_called_out(self):
-        self.assertEqual(pl.summarize("title", "", "FT8AF"), "title: (unset) -> 5 chars")
+        self.assertEqual(pl.summarize("title", "", "JTTYAF"), "title: (unset) -> 6 chars")
 
     def test_changed_value_shows_both_lengths(self):
-        self.assertEqual(pl.summarize("title", "old", "FT8AF"), "title: 3 chars -> 5 chars")
+        self.assertEqual(pl.summarize("title", "old", "JTTYAF"), "title: 3 chars -> 6 chars")
 
 
 class ServiceAccountInfoTest(unittest.TestCase):
-    GOOD = '{"type": "service_account", "client_email": "ci@ft8af.iam.gserviceaccount.com"}'
+    GOOD = '{"type": "service_account", "client_email": "ci@jttyaf.iam.gserviceaccount.com"}'
 
     def test_valid_json_is_parsed(self):
         info = pl.service_account_info({"PLAY_SERVICE_ACCOUNT_JSON": self.GOOD})
-        self.assertEqual(info["client_email"], "ci@ft8af.iam.gserviceaccount.com")
+        self.assertEqual(info["client_email"], "ci@jttyaf.iam.gserviceaccount.com")
 
     def test_missing_variable_explains_how_to_set_it(self):
         with self.assertRaises(pl.CredentialsError) as cm:
@@ -331,7 +331,7 @@ class ServiceAccountInfoTest(unittest.TestCase):
 
 
 class BuildCredentialsTest(unittest.TestCase):
-    INFO = {"type": "service_account", "client_email": "ci@ft8af.iam.gserviceaccount.com"}
+    INFO = {"type": "service_account", "client_email": "ci@jttyaf.iam.gserviceaccount.com"}
 
     def test_returns_what_the_factory_builds(self):
         sentinel = object()
@@ -544,7 +544,7 @@ class DiffTextTest(unittest.TestCase):
         self.assertNotIn("-one", body)
 
     def test_identical_text_produces_no_diff(self):
-        self.assertEqual(pl.diff_text("en-US", "title", "FT8AF", "FT8AF"), "")
+        self.assertEqual(pl.diff_text("en-US", "title", "JTTYAF", "JTTYAF"), "")
 
 
 class RunCheckTest(unittest.TestCase):
@@ -731,7 +731,7 @@ class RunPullTest(TempTreeTest):
         with captured():
             self.assertEqual(pl.run_pull(s, "pkg", "e1", self.tmp), 0)
         d = Path(self.tmp) / "en-US"
-        self.assertEqual((d / "title.txt").read_text(encoding="utf-8"), "FT8AF\n")
+        self.assertEqual((d / "title.txt").read_text(encoding="utf-8"), "JTTYAF\n")
         self.assertEqual(
             (d / "full_description.txt").read_text(encoding="utf-8"), "line one\nline two\n"
         )
@@ -1085,11 +1085,15 @@ class RepoMetadataTest(unittest.TestCase):
         missing = sorted(RES_TO_PLAY[q] for q in shipped if RES_TO_PLAY[q] not in listings)
         self.assertEqual(missing, [], "app language(s) with no store listing: %s" % missing)
 
-    def test_every_locale_has_the_same_title(self):
-        # FT8AF is a brand name; a locale drifting to a different title would be
-        # a rename in the store, not a translation.
+    def test_every_locale_title_leads_with_the_brand(self):
+        # The store name is "JTTYAF: <tagline>". JTTYAF is a brand name and must
+        # open every locale's title unchanged; only the tagline after it is
+        # translated. A locale dropping or respelling the brand would be a rename
+        # in the store, not a translation.
         titles = {loc: li["title"] for loc, li in pl.load_metadata(REPO_METADATA).items()}
-        self.assertEqual(set(titles.values()), {"FT8AF"}, titles)
+        self.assertEqual(titles["en-US"], "JTTYAF: JTTY Ham Radio Live")
+        off_brand = {loc: t for loc, t in titles.items() if not t.startswith("JTTYAF")}
+        self.assertEqual(off_brand, {}, off_brand)
 
     def test_no_locale_carries_a_byte_order_mark(self):
         # A BOM survives into the listing text and renders as a stray glyph.

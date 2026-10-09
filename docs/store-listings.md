@@ -74,9 +74,12 @@ idea, not to the words. The English full description is deliberately kept a few
 hundred characters below the cap for the same reason — French, the longest
 translation, lands within about 500 characters of the limit.
 
-`title.txt` is `FT8AF` in every locale — it is a brand name, not a phrase to
-translate. A test asserts this, so changing the store name is a deliberate edit
-to that test rather than something a translation pass can do by accident.
+`title.txt` is `JTTYAF: <tagline>` — the English store name is
+`JTTYAF: JTTY Ham Radio Live`, and other locales translate only the tagline
+(`JTTYAF: JTTY radioamateur`, `JTTYAF: JTTYアマチュア無線`, …). `JTTYAF` is a
+brand name and opens every title unchanged; a test asserts this, so changing
+the store name is a deliberate edit to that test rather than something a
+translation pass can do by accident.
 
 ## Publishing
 
@@ -114,7 +117,7 @@ still get a 403 on `listings.patch`. What it needs is **Play Console → Users a
 permissions → the service account → App permissions → Store presence → "Manage
 store presence"**.
 
-**For FT8AF this is already granted** (confirmed 2026-09-01), so the first
+**For JTTYAF this is already granted** (confirmed 2026-09-01), so the first
 publish should go straight through. It is written down because it is not implied
 by the release permission the account was set up with, and because revoking it
 would break listing publishes while leaving releases working — a failure that

@@ -1,0 +1,34 @@
+JTTYAF brengt JTTY, de toetsenbord-naar-toetsenbord digimode uit WSJT-X 3.2, naar je Android-telefoon. Verbind je telefoon met je transceiver en maak QSO's in RTTY-stijl met een moderne gecodeerde golfvorm: elk frame is beschermd met een CRC en een convolutiecode, zodat zwakke signalen schoon worden afgedrukt waar klassieke RTTY het scherm met onzin zou vullen.
+
+ONTVANGEN
+• Live afdruk: elk gedecodeerd JTTY-bericht in de doorlaatband verschijnt zodra het binnenkomt, met tijd, audiofrequentie en signaal-ruisverhouding
+• Decoderen van de hele doorlaatband (300–2700 Hz) met signaalsubtractie, zodat ook overlappende stations worden afgedrukt, of alleen op je RX-offset om batterij te sparen
+• Waterval met de RX/TX-offsetmarkering; tik om af te stemmen
+• Ontvangst op de achtergrond: een voorgrondservice blijft luisteren met het scherm uit
+• Alles wat wordt ontvangen en verzonden wordt opgeslagen in een ALL.TXT-bestand in WSJT-X-stijl
+
+ZENDEN
+• TX via toetsenbord: typ tot 80 tekens en druk op Verzenden; een hint toont hoeveel frames dat kost
+• F1–F8-macro's met %M (mijn call), %H (DX-call) en %E (599 plus volgnummer); lang indrukken om te bewerken
+• Contestprofielen: uitwisselingen voor Algemeen, RTTY Roundup en Field Day
+• Tik op een ontvangen regel om de DX-call te kiezen en daarna op Log QSO om hem in het logboek te schrijven en je volgnummer te verhogen
+
+RADIOBESTURING
+• CAT-besturing via USB, Bluetooth of netwerk voor Icom, Yaesu, Kenwood, Elecraft, Xiegu, FlexRadio, truSDX en veel door hamlib ondersteunde sets
+• USB-audio rechtstreeks naar de set, of audio via de microfoon en luidspreker van de telefoon
+• Bandkiezer met de JTTY-frequenties, TX-niveau per band, afstemdraaggolf, automatisch ALC-niveau en SWR-beveiliging
+
+LOGBOEK
+• QSO's gelogd met MODE=JTTY, ADIF-export
+• Uploaden naar Cloudlog, Wavelog, QRZ Logbook en World Radio League
+• Statistieken en awardoverzicht
+• Optionele GPS-locator zodat je Maidenhead-vak je volgt bij portabel werken
+
+PRIVACY
+Geen advertenties en geen tracking. Crashrapportage staat standaard uit en werkt alleen als je die inschakelt bij Geavanceerde instellingen. Je call en locatie zitten nooit in een crashrapport.
+
+OPEN SOURCE
+JTTYAF heeft een MIT-licentie. De JTTY-codec is een onafhankelijke implementatie, geschreven op basis van de gepubliceerde protocolbeschrijving. Broncode en issuetracker: github.com/patrickrb/JTTYAF
+
+VEREISTEN
+Een geldige zendamateurvergunning, een HF-transceiver en een audio- of USB-verbinding tussen telefoon en radio. JTTYAF is een hulpmiddel voor je radio; het zendt niet zelfstandig.

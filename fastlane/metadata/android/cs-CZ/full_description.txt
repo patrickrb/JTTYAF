@@ -1,0 +1,34 @@
+JTTYAF přináší JTTY, digitální provoz klávesnice–klávesnice představený ve WSJT-X 3.2, do telefonu s Androidem. Připojte telefon k transceiveru a dělejte spojení ve stylu RTTY s moderním kódovaným signálem: každý rámec chrání CRC a konvoluční kód, takže slabé signály se tisknou čistě tam, kde by klasické RTTY zaplnilo obrazovku smetím.
+
+PŘÍJEM
+• Živý tisk: každá dekódovaná zpráva JTTY v propustném pásmu se objeví hned po příjmu, s časem, zvukovým kmitočtem a odstupem signál/šum
+• Dekódování celého pásma (300–2700 Hz) s odečítáním signálů, takže se tisknou i překrývající se stanice, nebo jen na vašem RX offsetu pro úsporu baterie
+• Vodopád se značkou RX/TX offsetu; klepnutím přeladíte
+• Příjem na pozadí: služba na popředí poslouchá dál i se zhasnutou obrazovkou
+• Vše přijaté i odeslané se ukládá do souboru ALL.TXT ve stylu WSJT-X
+
+VYSÍLÁNÍ
+• TX z klávesnice: napište až 80 znaků a stiskněte Odeslat; nápověda ukáže, kolik rámců to zabere
+• Makra F1–F8 s %M (moje značka), %H (značka DX) a %E (599 plus pořadové číslo); dlouhým stiskem upravíte
+• Závodní profily: výměny Obecná, RTTY Roundup a Field Day
+• Klepnutím na přijatý řádek vyberete značku DX, pak Zapsat QSO uloží spojení do deníku a posune pořadové číslo
+
+OVLÁDÁNÍ RÁDIA
+• Ovládání CAT přes USB, Bluetooth nebo síť pro Icom, Yaesu, Kenwood, Elecraft, Xiegu, FlexRadio, truSDX a mnoho zařízení podporovaných hamlibem
+• USB zvuk přímo do rádia, nebo zvuk přes mikrofon a reproduktor telefonu
+• Výběr pásma s kmitočty JTTY, úroveň TX pro každé pásmo, ladicí nosná, automatická úroveň ALC a ochrana podle PSV
+
+DENÍK
+• Spojení ukládaná s MODE=JTTY, export ADIF
+• Nahrávání do Cloudlog, Wavelog, QRZ Logbook a World Radio League
+• Statistiky a sledování diplomů
+• Volitelný lokátor z GPS, aby vás váš Maidenhead čtverec následoval při provozu v terénu
+
+SOUKROMÍ
+Žádné reklamy a žádné sledování. Hlášení pádů je ve výchozím stavu vypnuté a běží jen tehdy, když ho zapnete v Pokročilém nastavení. Vaše značka a poloha se do hlášení pádů nikdy nedostanou.
+
+OTEVŘENÝ ZDROJ
+JTTYAF je pod licencí MIT. Kodek JTTY je nezávislá implementace napsaná podle zveřejněného popisu protokolu. Zdrojový kód a hlášení problémů: github.com/patrickrb/JTTYAF
+
+POŽADAVKY
+Platná radioamatérská koncese, KV transceiver a zvukové nebo USB propojení telefonu s rádiem. JTTYAF je doplněk k vašemu rádiu; sám nevysílá.

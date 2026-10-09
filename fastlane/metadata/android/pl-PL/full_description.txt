@@ -1,0 +1,34 @@
+JTTYAF przenosi JTTY, emisję cyfrową klawiatura–klawiatura wprowadzoną w WSJT-X 3.2, na telefon z Androidem. Podłącz telefon do transceivera i prowadź łączności w stylu RTTY z nowoczesnym kodowanym sygnałem: każda ramka jest chroniona sumą CRC i kodem splotowym, więc słabe sygnały drukują się czysto tam, gdzie klasyczne RTTY zapełniłoby ekran śmieciami.
+
+ODBIÓR
+• Druk na żywo: każda zdekodowana wiadomość JTTY w pasmie przenoszenia pojawia się od razu, z czasem, częstotliwością audio i stosunkiem sygnał/szum
+• Dekodowanie całego pasma (300–2700 Hz) z odejmowaniem sygnałów, dzięki czemu drukują się też nakładające się stacje, albo tylko na Twoim offsecie RX dla oszczędności baterii
+• Wodospad ze znacznikiem offsetu RX/TX; dotknij, aby przestroić
+• Odbiór w tle: usługa pierwszoplanowa słucha dalej przy wygaszonym ekranie
+• Wszystko odebrane i nadane trafia do pliku ALL.TXT w stylu WSJT-X
+
+NADAWANIE
+• TX z klawiatury: wpisz do 80 znaków i naciśnij Wyślij; podpowiedź pokazuje, ile ramek to zajmie
+• Makra F1–F8 z %M (mój znak), %H (znak DX) i %E (599 plus numer kolejny); długie naciśnięcie, aby edytować
+• Profile zawodów: wymiany Ogólna, RTTY Roundup i Field Day
+• Dotknij odebranej linii, aby wybrać znak DX, a potem Loguj QSO, aby zapisać łączność w dzienniku i zwiększyć numer kolejny
+
+STEROWANIE RADIEM
+• Sterowanie CAT przez USB, Bluetooth lub sieć dla Icom, Yaesu, Kenwood, Elecraft, Xiegu, FlexRadio, truSDX i wielu radiostacji obsługiwanych przez hamlib
+• Audio USB bezpośrednio do radia albo audio przez mikrofon i głośnik telefonu
+• Wybór pasma z częstotliwościami JTTY, poziom TX dla każdego pasma, nośna do strojenia, automatyczny poziom ALC i ochrona SWR
+
+DZIENNIK
+• Łączności zapisywane z MODE=JTTY, eksport ADIF
+• Wysyłanie do Cloudlog, Wavelog, QRZ Logbook i World Radio League
+• Statystyki i śledzenie dyplomów
+• Opcjonalny lokator z GPS, aby Twój kwadrat Maidenhead podążał za Tobą w terenie
+
+PRYWATNOŚĆ
+Bez reklam i bez śledzenia. Raportowanie awarii jest domyślnie wyłączone i działa tylko, jeśli włączysz je w Ustawieniach zaawansowanych. Twój znak i lokalizacja nigdy nie trafiają do raportów awarii.
+
+OTWARTE ŹRÓDŁO
+JTTYAF jest na licencji MIT. Kodek JTTY to niezależna implementacja napisana na podstawie opublikowanego opisu protokołu. Kod źródłowy i zgłaszanie problemów: github.com/patrickrb/JTTYAF
+
+WYMAGANIA
+Ważna licencja krótkofalarska, transceiver KF oraz połączenie audio lub USB między telefonem a radiem. JTTYAF jest dodatkiem do Twojego radia; sam nie nadaje.

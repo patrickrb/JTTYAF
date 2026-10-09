@@ -1,0 +1,34 @@
+JTTYAF brings JTTY, the keyboard-to-keyboard digital mode introduced in WSJT-X 3.2, to your Android phone. Connect your phone to your transceiver and work RTTY-style QSOs with a modern coded waveform: every frame is protected by a CRC and a convolutional code, so weak signals print cleanly where classic RTTY would fill the screen with garbage.
+
+RECEIVE
+• Live print: every decoded JTTY message in the passband scrolls up as it arrives, with time, audio frequency and signal-to-noise ratio
+• Whole-passband decode (300–2700 Hz) with signal subtraction, so overlapping stations print too, or decode only at your RX offset to save battery
+• Waterfall with the RX/TX offset marker; tap to retune
+• Background receive: a foreground service keeps listening with the screen off
+• Everything received and sent is saved to a WSJT-X style ALL.TXT file
+
+TRANSMIT
+• Keyboard TX: type up to 80 characters and press Send; a hint shows how many frames it takes
+• F1–F8 macros with %M (my call), %H (DX call) and %E (599 plus serial); long-press to edit
+• Contest profiles: General, RTTY Roundup and Field Day exchanges
+• Tap any received line to pick the DX callsign, then Log QSO to write it to the logbook and advance your serial number
+
+RADIO CONTROL
+• CAT control over USB, Bluetooth or network for Icom, Yaesu, Kenwood, Elecraft, Xiegu, FlexRadio, truSDX and many hamlib-supported rigs
+• USB audio direct to the rig, or audio through the phone's microphone and speaker
+• Band picker with the JTTY frequencies, per-band TX level, tune carrier, ALC auto-level and SWR protection
+
+LOGBOOK
+• QSOs logged with MODE=JTTY, ADIF export
+• Upload to Cloudlog, Wavelog, QRZ Logbook and World Radio League
+• Statistics and award tracking
+• Optional GPS grid square so your Maidenhead locator follows you on portable trips
+
+PRIVACY
+No ads and no tracking. Crash reporting is off by default and only runs if you turn it on in Advanced Settings. Your callsign and location are never included in crash reports.
+
+OPEN SOURCE
+JTTYAF is MIT-licensed. The JTTY codec is a clean-room implementation written from the published protocol description. Source code and issue tracker: github.com/patrickrb/JTTYAF
+
+REQUIREMENTS
+A valid amateur radio licence, an HF transceiver and an audio or USB connection between phone and radio. JTTYAF is a companion for your radio; it does not transmit on its own.
