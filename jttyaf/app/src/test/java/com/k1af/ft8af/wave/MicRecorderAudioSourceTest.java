@@ -30,7 +30,7 @@ public class MicRecorderAudioSourceTest {
 
     @Test
     public void belowApi24_usesVoiceRecognition_evenIfFlagTrue() {
-        // UNPROCESSED constant only exists from API 24; on minSdk 23 we must not
+        // UNPROCESSED constant only exists from API 24; below it we must not
         // request it regardless of the (meaningless) capability flag value.
         assertThat(MicRecorder.chooseAudioSource(Build.VERSION_CODES.M, true))
                 .isEqualTo(MediaRecorder.AudioSource.VOICE_RECOGNITION);

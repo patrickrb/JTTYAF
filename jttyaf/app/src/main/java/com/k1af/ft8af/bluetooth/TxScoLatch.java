@@ -50,7 +50,7 @@ public final class TxScoLatch {
      * {@code ScoLinkCoordinator.isLinkUpOrPending()} as a callable. App-local
      * rather than {@code java.util.function.BooleanSupplier}: that package does
      * not exist before API 24 and the module does not desugar the core library,
-     * so a lambda implementing it fails to load on Android 6 (minSdk 23) — at
+     * so a lambda implementing it fails to load on Android 6 (the former minSdk 23) — at
      * keying time, in this case (Copilot review on #790).
      */
     public interface LinkState {

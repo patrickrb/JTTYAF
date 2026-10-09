@@ -31,7 +31,7 @@ public final class ScoLinkCoordinator {
      * {@code java.util.function.LongSupplier}: {@code java.util.function} does
      * not exist before API 24 and the core library is not desugared, so the
      * {@code System::currentTimeMillis} lambda handed to
-     * {@link #onMainThread} failed to load on Android 6 (minSdk 23) — while
+     * {@link #onMainThread} failed to load on Android 6 (the former minSdk 23) — while
      * constructing {@code MainViewModel}, i.e. at app start (Copilot review on
      * #790, same defect as {@code TxScoLatch} had).
      */

@@ -31,7 +31,7 @@ android {
 
     defaultConfig {
         applicationId "radio.ks3ckc.jttyaf"
-        minSdk 23
+        minSdk 24
         targetSdk 36
         // Required for the androidTest suite to actually run: our instrumented
         // tests use @RunWith(AndroidJUnit4::class). Without this, AGP falls back

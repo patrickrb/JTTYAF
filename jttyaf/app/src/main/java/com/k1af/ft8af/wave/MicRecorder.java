@@ -839,7 +839,7 @@ public class MicRecorder {
      * <p>{@code UNPROCESSED} (API 24+, only when the device advertises support)
      * guarantees no processing. {@code VOICE_RECOGNITION} is the floor: it
      * disables AGC/NS on most devices and is available back to API 3, so it's
-     * safe for our minSdk 23 and for devices lacking UNPROCESSED support.
+     * safe for pre-24 callers and for devices lacking UNPROCESSED support.
      *
      * <p>Package-visible for testing.
      */
