@@ -25,7 +25,9 @@ import java.util.function.Supplier;
  *
  * <p>The file must be 16-bit PCM at the recorder's 12 kHz rate; stereo is folded to mono. It is
  * loaded once, then looped forever and paced to wall-clock time so decodes appear at the same
- * cadence as live audio. The header walk, sample conversion and pacing arithmetic are pure
+ * cadence as live audio. Playback position is derived from a process-wide clock, not from the
+ * thread start: {@code MicRecorder} restarts capture a few times during launch (reinit), and a
+ * band that rewound on every restart would print the opening messages twice. The header walk, sample conversion and pacing arithmetic are pure
  * static functions with unit tests; only {@link #find} and {@link #startThread} touch Android
  * or threads.
  */
@@ -37,6 +39,8 @@ public final class WavInjector {
     static final int CHUNK_SAMPLES = 1200;
     /** Refuse absurdly large files rather than OOM on a mis-pushed recording. */
     static final long MAX_FILE_BYTES = 64L * 1024 * 1024;
+    /** The "band" started when the process did; every producer resumes from where it is now. */
+    private static final long EPOCH_NANOS = System.nanoTime();
 
     /** Parsed WAV header. {@code dataOffset}/{@code dataLength} locate the PCM payload. */
     static final class WavInfo {
@@ -151,6 +155,16 @@ public final class WavInjector {
     }
 
     /**
+     * Samples the band has "played" since the epoch, so a producer starting {@code elapsedNanos}
+     * after process start resumes mid-file instead of rewinding (position = this mod total).
+     */
+    static long samplesElapsed(long elapsedNanos, int sampleRate) {
+        if (elapsedNanos <= 0) return 0;
+        return elapsedNanos / 1_000_000_000L * sampleRate
+                + (elapsedNanos % 1_000_000_000L) * sampleRate / 1_000_000_000L;
+    }
+
+    /**
      * Load and convert the whole file to mono floats. Returns {@code null} (after logging) when
      * the file is unreadable, not 16-bit PCM, or not at {@code expectedRate}.
      */
@@ -201,9 +215,10 @@ public final class WavInjector {
             final Supplier<MicRecorder.OnDataListener> listener,
             final BooleanSupplier keepRunning) {
         Thread t = new Thread(() -> {
-            final long start = System.nanoTime();
-            long delivered = 0;
-            int pos = 0;
+            // Pace against the epoch, resuming at the band's current position.
+            final long start = EPOCH_NANOS;
+            long delivered = samplesElapsed(System.nanoTime() - start, sampleRate);
+            int pos = (int) (delivered % samples.length);
             float[] chunk = new float[CHUNK_SAMPLES];
             while (keepRunning.getAsBoolean()) {
                 int n = Math.min(CHUNK_SAMPLES, samples.length - pos);

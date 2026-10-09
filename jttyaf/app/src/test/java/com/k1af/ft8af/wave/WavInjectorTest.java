@@ -140,6 +140,17 @@ public class WavInjectorTest {
     }
 
     @Test
+    public void samplesElapsedTracksTheClockWithoutOverflow() {
+        assertThat(WavInjector.samplesElapsed(0, 12000)).isEqualTo(0);
+        assertThat(WavInjector.samplesElapsed(-5, 12000)).isEqualTo(0);
+        assertThat(WavInjector.samplesElapsed(1_000_000_000L, 12000)).isEqualTo(12000);
+        assertThat(WavInjector.samplesElapsed(1_500_000_000L, 12000)).isEqualTo(18000);
+        // ~10 days: a naive elapsed*rate would overflow a long.
+        long tenDays = 10L * 24 * 3600 * 1_000_000_000L;
+        assertThat(WavInjector.samplesElapsed(tenDays, 12000)).isEqualTo(10L * 24 * 3600 * 12000);
+    }
+
+    @Test
     public void threadDeliversChunksAndStopsWhenAskedTo() throws Exception {
         float[] samples = new float[WavInjector.CHUNK_SAMPLES * 3];
         AtomicBoolean running = new AtomicBoolean(true);
