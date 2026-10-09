@@ -1,77 +1,107 @@
-# FT8AF
+# JTTYAF
 
-**FT8 on Android — modernized.**
+**JTTY on Android — RTTY-style keyboard QSOs with a coded waveform.**
 
-🌐 **[ft8af.app](https://ft8af.app)** · 💬 **[Join the Discord](https://discord.gg/tz4spm5nWB)**
-
-A fork of [FT8CN](https://github.com/N0BOY/FT8CN) that takes the excellent original and brings it forward: a Jetpack Compose UI, full English localization, dozens of bug fixes, and a pile of new operating features built for real on-the-air use.
-
-Run FT8 natively on your Android phone or tablet, drive your radio over USB CAT, decode the band, and work the world from anywhere.
+JTTY is the new keyboard-to-keyboard digital mode introduced in WSJT-X 3.2: a 4-tone GFSK
+signal (~127 Hz wide) carrying 1.888 s frames of structured contest exchanges or free text,
+protected by a CRC and a tail-biting convolutional code, with no clock synchronisation —
+transmissions start whenever you press Send. JTTYAF brings it to your phone: live-print
+receive of every station in the passband, F-key macros for run and S&P, a serial-number
+exchange, a logbook, and USB/Bluetooth/network CAT control of your radio.
 
 ---
 
-## What's New in FT8AF
+## Features
 
-### UI & UX
-- **Jetpack Compose UI** with a Material 3 dark theme
-- **Localized in 7 languages**: English, Simplified Chinese (ZH-CN), Traditional Chinese (ZH-TW), Russian (RU), Spanish (ES), French (FR), and Japanese (JA)
-- **Active QSO Monitor** — collapsible panel above the TX strip showing the current contact at a glance
-- **Caller queue** so you stay on target during an active QSO instead of bouncing to whoever's loudest
-- **CQ / Stop toggle** button right on the TX strip
-- **TX1 / TX2 time slot toggle** for picking your transmit period
-- **Configurable spectrum width** and continuous waterfall scrolling
-- **UTC timestamps** drawn on the waterfall at FT8 period boundaries
-- **TX volume control** wired to the hardware volume buttons
+### Receive
+- **Live print** — every decoded JTTY message in the passband scrolls up as it arrives,
+  with time, audio frequency and S/N; your own transmissions are echoed like a teleprinter
+- **Whole-passband decode** (300–2700 Hz) with signal subtraction so overlapping stations
+  print too, or RX-offset-only decode to save battery
+- **Waterfall** with the RX/TX offset marker; tap to retune the offset
+- **Background receive** — a foreground service keeps JTTYAF listening with the screen off
+- Everything received and sent is appended to `jtty_all.txt` (WSJT-X `ALL.TXT` style)
 
-### Radio & Audio
-- USB CAT control and USB audio reliability fixes (auto-connect race conditions, multi-port handling, serial control)
-- Rig model, control mode, and audio device pickers in the new Compose Settings
-- FT-891 bandwidth correctly set to 3000 Hz in DATA-USB mode
-- TX marker frequency alignment fixes
+### Transmit
+- **Keyboard TX** — type up to 80 characters and Send; the hint shows how many frames it
+  takes (five arbitrary characters per frame, more for contest formats)
+- **F1–F8 macros** with `%M` (my call), `%H` (DX call), `%E` (599 + serial); defaults map
+  to the one-frame JTTY atoms (`CQ <call> CQ`, `TU <call> CQ`, `<call> TU`, `AGN?` …);
+  long-press to edit
+- **Contest profiles** — General, RTTY Roundup (`599 001` in one frame), Field Day
+- Tap any received line to pick the DX callsign; **Log QSO** writes it to the logbook and
+  bumps the serial
 
-### Logging
-- **Cloudlog** configuration dialog and automatic log upload
-- **QRZ** automatic log upload
+### Radio control
+- USB CAT control for the same rig set as FT8AF (Icom, Yaesu, Kenwood, Elecraft, Xiegu,
+  FlexRadio, Guohe, truSDX, hamlib-driven rigs, and more), USB audio, Bluetooth, and
+  network rigs
+- Band picker with the preliminary JTTY frequencies, per-band TX level, tune carrier,
+  ALC auto-volume and SWR protection
 
-### Stability
-- 58+ bug fixes across two "bug bash" passes: NPE crashes, resource leaks, threading issues, Android lifecycle bugs, encoding errors, RTL support, lint errors for Android 12+
+### Logbook
+- QSOs logged with `MODE=JTTY`, ADIF export, Cloudlog / Wavelog / QRZ logbook / World
+  Radio League upload, stats and award tracking
 
 ---
 
 ## Install
 
-Grab the latest APK from the [Releases](https://github.com/patrickrb/FT8AF/releases) page, or build it yourself:
+Grab the latest APK from the Releases page, or build it yourself:
 
 ```bash
-cd ft8af
+cd jttyaf
 ./gradlew installDebug
 ```
 
----
-
-## Contributing
-
-Workflow, testing and build rules for humans and coding agents alike are in [AGENTS.md](AGENTS.md).
+Windows: `cd jttyaf && gradlew.bat installDebug`. Builds need JDK 17
+(AGP 8.7.3 / Gradle 8.11).
 
 ---
 
 ## Native code
 
-The FT8 DSP core is a vendored copy of [kgoba's ft8_lib](https://github.com/kgoba/ft8_lib), pinned to a specific upstream commit — see [`ft8af/app/src/main/cpp/ft8_lib/FT8_LIB_PIN.txt`](ft8af/app/src/main/cpp/ft8_lib/FT8_LIB_PIN.txt) for the exact hash. App-specific JNI glue lives alongside it in `ft8af/app/src/main/cpp/ft8af_glue/`. All of it is built from source by the NDK/CMake toolchain into a single `libft8af.so`, so a fresh clone or worktree builds with no manual copying.
+The JTTY codec in `jttyaf/app/src/main/cpp/jtty_lib/` is a **clean-room implementation**
+written for this project from the published protocol description
+([`docs/jtty-protocol.md`](docs/jtty-protocol.md): the WSJT-X design notes and source-coding
+specification, golden vectors, and the official sample recording) — no GPL JTTY source was
+consulted or copied. The codec and its JNI glue (`cpp/jttyaf_glue/`) are built from source
+by the NDK/CMake toolchain into `libjttyaf.so`, so a fresh clone builds with no manual
+steps. Host-side C tests (source-coding golden vectors, channel-coding round trips, modem
+sensitivity) run in CI on every PR; the interoperability suite additionally decodes WSJT-X's
+official sample recording when you point it at the file (the bit-level conventions were
+settled against it — see `jtty_lib/SOURCES.md`):
 
-Historical note: the app formerly shipped a closed prebuilt `libft8cn.so` — a JNI wrapper around kgoba ft8_lib @ `6f528128`. It is no longer used and no longer present in the repository; the from-source build replaced it entirely.
+```
+jttyaf/app/src/main/cpp/jttyaf_glue/run_jtty_host_tests.sh [260807_134110.wav]   # Linux/macOS/WSL
+jttyaf/app/src/main/cpp/jttyaf_glue/run_jtty_host_tests.ps1 -Sample <wav>       # Windows (host clang)
+```
+
+`jtty_cli encode "<text>" out.wav` / `jtty_cli decode in.wav` exercise the codec from the
+command line.
 
 ---
 
-## Thanks
+## Heritage
 
-Massive thanks to **BG7YOZ**, the original author of FT8CN, and **N0BOY**, who hosts the original repository and did the early translation work. None of this exists without their work — this fork stands entirely on their shoulders.
+JTTYAF is built from [FT8AF](https://github.com/patrickrb/FT8AF), which is in turn a fork of
+[FT8CN](https://github.com/N0BOY/FT8CN) by **BG7YOZ** (hosted by **N0BOY**). The rig CAT
+control, USB serial/audio stack, theming, and logbook all carry over from that lineage; the
+FT8 engine was replaced by the clean-room JTTY codec. Massive thanks to the FT8CN authors —
+none of this exists without their work — and to the WSJT-X team (K1JT, K9AN, G4KLA, N9ADG,
+DL3WDG, W3SZ, KJ5HST, KD0BTO) for designing and documenting JTTY.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
+
+## Privacy
+
+No ads, no analytics, no telemetry. See [privacy.md](privacy.md).
 
 ---
 
-## About this fork
-
-Most of the changes in FT8AF were vibe coded on I-70 at 70 mph on the way to and from Hamvention. Laptop on the passenger seat, radio in the back, Claude in the loop. Some of the best debugging happens at highway speed.
+## About
 
 Built by:
 - **Patrick Burns — [K1AF](https://www.qrz.com/db/K1AF)**

@@ -38,9 +38,9 @@ remains selectable to reproduce the old behavior for A/B comparison.
 
 Pipeline: `SpectrumListener` (1920 float samples per 160 ms, ~6 fps) →
 `WaterfallScreen.kt` observer → `FFTBridge` → JNI `getFFTData*`
-(`ft8af_glue/ft8_fft_jni.cpp`) → window (`ft8af_window_fill/apply`) → kissfft
-real FFT → optional cross-frame EMA (`ft8af_mag_ema`) →
-`ft8af_magnitudes_to_display` (dB, median noise floor, 0–255) →
+(`jttyaf_glue/ft8_fft_jni.cpp`) → window (`jttyaf_window_fill/apply`) → kissfft
+real FFT → optional cross-frame EMA (`jttyaf_mag_ema`) →
+`jttyaf_magnitudes_to_display` (dB, median noise floor, 0–255) →
 `ColumnarView` (spectrum strip) + `WaterfallView` (scrolling bitmap).
 
 Settings → Advanced → **FFT / Waterfall (developer)**:
@@ -79,7 +79,7 @@ stops. That is itself a smoothing step (bins never map 1:1 to pixels there),
 worth remembering when judging "smearing" by eye — the spectrum strip, which
 has the configurable combine, is the more faithful per-bin view.
 
-Tests: `ft8af_glue/test_fft_window.c` (window shapes, unknown-type fallback,
+Tests: `jttyaf_glue/test_fft_window.c` (window shapes, unknown-type fallback,
 rect-vs-Hann leakage, EMA math; run via `run_host_tests.ps1`/`.sh`),
 `BinAggregationTest.java`, `GeneralVariablesFftSettingsTest.kt`,
 `FftDisplaySettingsTest.kt`.

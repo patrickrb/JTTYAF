@@ -39,7 +39,7 @@ self_test() {
   trap 'rm -rf "$tmp"' RETURN
   git -C "$tmp" init -q
   printf '# rules\n' > "$tmp/AGENTS.md"
-  printf '# FT8AF\n\n@AGENTS.md\n' > "$tmp/CLAUDE.md"
+  printf '# JTTYAF\n\n@AGENTS.md\n' > "$tmp/CLAUDE.md"
   printf 'x = 1  # see AGENTS.md\n' > "$tmp/code.py"
   git -C "$tmp" add -A
 
@@ -50,10 +50,10 @@ self_test() {
   if check "$tmp" >/dev/null; then echo "self-test FAIL: stale reference accepted"; return 1; fi
   printf 'x = 1\n' > "$tmp/code.py"
 
-  printf '# FT8AF\n' > "$tmp/CLAUDE.md"
+  printf '# JTTYAF\n' > "$tmp/CLAUDE.md"
   git -C "$tmp" add -A
   if check "$tmp" >/dev/null; then echo "self-test FAIL: missing import accepted"; return 1; fi
-  printf '# FT8AF\n\n@AGENTS.md\n' > "$tmp/CLAUDE.md"
+  printf '# JTTYAF\n\n@AGENTS.md\n' > "$tmp/CLAUDE.md"
 
   git -C "$tmp" add -A
   rm "$tmp/AGENTS.md"

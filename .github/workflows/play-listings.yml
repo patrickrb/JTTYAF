@@ -33,7 +33,7 @@ on:
       # these to check that every shipping language has a store listing, so a PR
       # adding only values-xx/strings_compose.xml has to run this gate — that PR
       # is precisely the regression the test exists to catch.
-      - 'ft8af/app/src/main/res/values*/strings_compose.xml'
+      - 'jttyaf/app/src/main/res/values*/strings_compose.xml'
   workflow_dispatch:
     inputs:
       mode:
@@ -78,7 +78,7 @@ jobs:
     # Only from the canonical repo — a fork has no PLAY_SERVICE_ACCOUNT_JSON and
     # must never be able to push listing text to the production app.
     if: >-
-      github.repository == 'patrickrb/FT8AF'
+      github.repository == 'patrickrb/JTTYAF'
       && github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     # Google Play allows only one open "edit" per app. android.yml serializes its
@@ -100,7 +100,7 @@ jobs:
       - name: Run
         env:
           PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
-          PACKAGE_NAME: radio.ks3ckc.ft8af
+          PACKAGE_NAME: radio.ks3ckc.jttyaf
           # Whatever the manual run picked. Falls back to the read-only dry
           # run rather than to `publish`, so a mode that somehow arrives empty
           # sends nothing to Play instead of shipping every changed locale.

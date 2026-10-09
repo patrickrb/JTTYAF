@@ -1,4 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500">
+  <!-- JTTYAF feature graphic: the *af family layout with the emerald (teleprinter
+       phosphor) accent and the 4-GFSK tone staircase from the launcher icon. -->
   <defs>
     <!-- Background gradient matching app theme -->
     <radialGradient id="bg" cx="512" cy="250" r="600" gradientUnits="userSpaceOnUse">
@@ -6,25 +8,24 @@
       <stop offset="0.6" stop-color="#0A1020"/>
       <stop offset="1" stop-color="#04070E"/>
     </radialGradient>
-    <!-- Amber halo behind icon -->
+    <!-- Emerald halo behind icon -->
     <radialGradient id="icon-halo" cx="200" cy="250" r="160" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FFAF5E" stop-opacity="0.12"/>
-      <stop offset="0.6" stop-color="#FFAF5E" stop-opacity="0.03"/>
-      <stop offset="1" stop-color="#FFAF5E" stop-opacity="0"/>
+      <stop offset="0" stop-color="#34D399" stop-opacity="0.14"/>
+      <stop offset="0.6" stop-color="#34D399" stop-opacity="0.03"/>
+      <stop offset="1" stop-color="#34D399" stop-opacity="0"/>
     </radialGradient>
     <!-- Subtle horizontal light streak -->
     <linearGradient id="streak" x1="0" y1="250" x2="1024" y2="250" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FFAF5E" stop-opacity="0"/>
-      <stop offset="0.15" stop-color="#FFAF5E" stop-opacity="0.04"/>
-      <stop offset="0.5" stop-color="#FFAF5E" stop-opacity="0.02"/>
-      <stop offset="0.85" stop-color="#FFAF5E" stop-opacity="0.04"/>
-      <stop offset="1" stop-color="#FFAF5E" stop-opacity="0"/>
+      <stop offset="0" stop-color="#34D399" stop-opacity="0"/>
+      <stop offset="0.15" stop-color="#34D399" stop-opacity="0.04"/>
+      <stop offset="0.5" stop-color="#34D399" stop-opacity="0.02"/>
+      <stop offset="0.85" stop-color="#34D399" stop-opacity="0.04"/>
+      <stop offset="1" stop-color="#34D399" stop-opacity="0"/>
     </linearGradient>
-    <!-- Icon disc gradient -->
-    <linearGradient id="disc-grad" x1="200" y1="220" x2="200" y2="280" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FFD7A0"/>
-      <stop offset="0.5" stop-color="#FFAF5E"/>
-      <stop offset="1" stop-color="#FF8A2C"/>
+    <!-- Tone bar gradient (icon coordinates, pre-transform) -->
+    <linearGradient id="tone-grad" x1="0" y1="50" x2="0" y2="66" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#A7F3D0"/>
+      <stop offset="1" stop-color="#34D399"/>
     </linearGradient>
   </defs>
 
@@ -36,7 +37,7 @@
   <circle cx="200" cy="250" r="180" fill="none" stroke="#A0B6DC" stroke-opacity="0.06" stroke-width="0.8"/>
   <circle cx="200" cy="250" r="140" fill="none" stroke="#A0B6DC" stroke-opacity="0.08" stroke-width="0.8"/>
 
-  <!-- Amber halo behind icon area -->
+  <!-- Emerald halo behind icon area -->
   <circle cx="200" cy="250" r="160" fill="url(#icon-halo)"/>
 
   <!-- ===== ICON (scaled up, centered at 200, 250) ===== -->
@@ -45,33 +46,35 @@
     <circle cx="54" cy="57" r="30" fill="none" stroke="#A0B6DC" stroke-opacity="0.2" stroke-width="0.6"/>
     <circle cx="54" cy="57" r="21" fill="none" stroke="#A0B6DC" stroke-opacity="0.2" stroke-width="0.6"/>
     <!-- Signal arcs -->
-    <path d="M22,57 A32,32 0 0,1 86,57" fill="none" stroke="#FFAF5E" stroke-opacity="0.333" stroke-width="2.2" stroke-linecap="round"/>
-    <path d="M30,57 A24,24 0 0,1 78,57" fill="none" stroke="#FFAF5E" stroke-opacity="0.6" stroke-width="2.8" stroke-linecap="round"/>
-    <path d="M38,57 A16,16 0 0,1 70,57" fill="none" stroke="#FFC880" stroke-width="3.2" stroke-linecap="round"/>
-    <!-- Center disc -->
-    <circle cx="54" cy="57" r="7" fill="url(#disc-grad)"/>
-    <circle cx="54" cy="57" r="7" fill="none" stroke="#FFE6BE" stroke-opacity="0.6" stroke-width="0.4"/>
-    <!-- Specular highlight -->
-    <ellipse cx="52" cy="54.5" rx="2.4" ry="1.6" fill="#FFF5DC" fill-opacity="0.627"/>
+    <path d="M22,57 A32,32 0 0,1 86,57" fill="none" stroke="#34D399" stroke-opacity="0.333" stroke-width="2.2" stroke-linecap="round"/>
+    <path d="M30,57 A24,24 0 0,1 78,57" fill="none" stroke="#34D399" stroke-opacity="0.6" stroke-width="2.8" stroke-linecap="round"/>
+    <path d="M38,57 A16,16 0 0,1 70,57" fill="none" stroke="#6EE7B7" stroke-width="3.2" stroke-linecap="round"/>
+    <!-- Four JTTY tones: 4-GFSK symbol staircase (tones 0,2,3,1) -->
+    <rect x="44" y="59.8" width="3.6" height="6.2" rx="1.2" fill="url(#tone-grad)"/>
+    <rect x="49.4" y="54.8" width="3.6" height="11.2" rx="1.2" fill="url(#tone-grad)"/>
+    <rect x="54.8" y="51.8" width="3.6" height="14.2" rx="1.2" fill="url(#tone-grad)"/>
+    <rect x="60.2" y="57.3" width="3.6" height="8.7" rx="1.2" fill="url(#tone-grad)"/>
+    <!-- Baseline -->
+    <path d="M42,67.2 L66,67.2" fill="none" stroke="#34D399" stroke-opacity="0.6" stroke-width="0.8" stroke-linecap="round"/>
     <!-- Sparks -->
-    <circle cx="22" cy="57" r="0.6" fill="#FFD7A0" fill-opacity="0.5"/>
-    <circle cx="86" cy="57" r="0.6" fill="#FFD7A0" fill-opacity="0.5"/>
-    <circle cx="30" cy="57" r="0.6" fill="#FFD7A0" fill-opacity="0.5"/>
-    <circle cx="78" cy="57" r="0.6" fill="#FFD7A0" fill-opacity="0.5"/>
+    <circle cx="22" cy="57" r="0.6" fill="#A7F3D0" fill-opacity="0.5"/>
+    <circle cx="86" cy="57" r="0.6" fill="#A7F3D0" fill-opacity="0.5"/>
+    <circle cx="30" cy="57" r="0.6" fill="#A7F3D0" fill-opacity="0.5"/>
+    <circle cx="78" cy="57" r="0.6" fill="#A7F3D0" fill-opacity="0.5"/>
   </g>
 
   <!-- ===== TEXT ===== -->
-  <!-- App name -->
-  <text x="420" y="225" font-family="'SF Pro Display', 'Helvetica Neue', 'Arial', sans-serif" font-size="72" font-weight="700" fill="#FFFFFF" letter-spacing="2">FT8AF</text>
+  <!-- App name: JTTY in white, the AF family suffix in the accent -->
+  <text x="420" y="225" font-family="'SF Pro Display', 'Helvetica Neue', 'Arial', sans-serif" font-size="72" font-weight="700" fill="#FFFFFF" letter-spacing="2">JTTY<tspan fill="#34D399">AF</tspan></text>
 
   <!-- Tagline -->
-  <text x="423" y="290" font-family="'SF Pro Display', 'Helvetica Neue', 'Arial', sans-serif" font-size="28" font-weight="400" fill="#A0B6DC" letter-spacing="0.5">FT8 on Android</text>
+  <text x="423" y="290" font-family="'SF Pro Display', 'Helvetica Neue', 'Arial', sans-serif" font-size="28" font-weight="400" fill="#A0B6DC" letter-spacing="0.5">JTTY keyboard mode on Android</text>
 
   <!-- Subtitle -->
-  <text x="423" y="335" font-family="'SF Pro Display', 'Helvetica Neue', 'Arial', sans-serif" font-size="20" font-weight="400" fill="#A0B6DC" fill-opacity="0.6" letter-spacing="0.3">Decode the band. Work the world.</text>
+  <text x="423" y="335" font-family="'SF Pro Display', 'Helvetica Neue', 'Arial', sans-serif" font-size="20" font-weight="400" fill="#A0B6DC" fill-opacity="0.6" letter-spacing="0.3">Type it. Send it. Work the world.</text>
 
   <!-- Decorative dots along bottom edge (like waterfall frequency markers) -->
-  <g fill="#FFAF5E" fill-opacity="0.15">
+  <g fill="#34D399" fill-opacity="0.15">
     <circle cx="50" cy="470" r="1.5"/>
     <circle cx="100" cy="470" r="1.5"/>
     <circle cx="150" cy="470" r="1.5"/>

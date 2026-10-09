@@ -17,9 +17,9 @@ workflow on an android-v<x.y.z> tag whose GitHub Release the main-merge run
 already created, carrying the promoted staging notes in its body between the
 hidden markers written by "Write release notes":
 
-    <!-- ft8af-notes-start -->
+    <!-- jttyaf-notes-start -->
     ...notes...
-    <!-- ft8af-notes-end -->
+    <!-- jttyaf-notes-end -->
 
 The workflow step runs `gh release view` and hands this script the result; the
 decision — existing release / missing release / lookup failure, manual dispatch
@@ -44,8 +44,8 @@ import os
 import re
 import sys
 
-START = "<!-- ft8af-notes-start -->"
-END = "<!-- ft8af-notes-end -->"
+START = "<!-- jttyaf-notes-start -->"
+END = "<!-- jttyaf-notes-end -->"
 
 # Play's what's-new limit, in BYTES: the workflow truncates notes.txt with
 # `head -c 500` before upload, and the API limit is on the encoded text. A
@@ -123,7 +123,7 @@ def extract_notes(body):
     starts = body.count(START)
     ends = body.count(END)
     if starts == 0 and ends == 0:
-        raise MalformedMarkers("no ft8af-notes markers")
+        raise MalformedMarkers("no jttyaf-notes markers")
     if starts != 1 or ends != 1:
         raise MalformedMarkers(
             "expected one start and one end marker, found %d and %d" % (starts, ends)
@@ -182,7 +182,7 @@ def decide(event, tag, gh_status, gh_stderr, body):
         notes = ""
     if dispatch and not notes.strip():
         return Outcome(error=(
-            "The GitHub Release for %s has no release notes between the ft8af-notes "
+            "The GitHub Release for %s has no release notes between the jttyaf-notes "
             "markers, so there is nothing to send to Play as the what's-new. Add "
             "them to the release body and rerun." % tag))
     return Outcome(found=True, notes=notes, body=body, message=(

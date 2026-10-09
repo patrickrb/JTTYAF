@@ -31,7 +31,7 @@ Modes:
 
 Env:
   PLAY_SERVICE_ACCOUNT_JSON  service account JSON (contents, not a path)
-  PACKAGE_NAME               defaults to radio.ks3ckc.ft8af
+  PACKAGE_NAME               defaults to radio.ks3ckc.jttyaf
 """
 import argparse
 import difflib
@@ -42,7 +42,7 @@ from pathlib import Path
 
 API = "https://androidpublisher.googleapis.com/androidpublisher/v3"
 
-DEFAULT_PACKAGE = "radio.ks3ckc.ft8af"
+DEFAULT_PACKAGE = "radio.ks3ckc.jttyaf"
 DEFAULT_ROOT = Path(__file__).resolve().parents[2] / "fastlane" / "metadata" / "android"
 
 # Play Console limits. Exceeding any of these is rejected by the API, so we

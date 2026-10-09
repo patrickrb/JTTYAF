@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- JTTYAF: the *af family mark (range rings + signal arcs over a deep-navy field)
+         in teleprinter-phosphor green, with the four JTTY tones — a 4-GFSK symbol
+         staircase — in place of FT8AF's single beam disc. -->
+
+    <!-- Range rings (faint blue-grey, within safe zone). -->
+    <path android:pathData="M54,57 m-30,0 a30,30 0 1,0 60,0 a30,30 0 1,0 -60,0"
+        android:fillColor="#00000000"
+        android:strokeColor="#33A0B6DC"
+        android:strokeWidth="0.6" />
+    <path android:pathData="M54,57 m-21,0 a21,21 0 1,0 42,0 a21,21 0 1,0 -42,0"
+        android:fillColor="#00000000"
+        android:strokeColor="#33A0B6DC"
+        android:strokeWidth="0.6" />
+
+    <!-- Top-half signal arcs (outer to inner, emerald, increasing opacity). -->
+    <path android:pathData="M22,57 A32,32 0 0,1 86,57"
+        android:fillColor="#00000000"
+        android:strokeColor="#5534D399"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round" />
+    <path android:pathData="M30,57 A24,24 0 0,1 78,57"
+        android:fillColor="#00000000"
+        android:strokeColor="#9934D399"
+        android:strokeWidth="2.8"
+        android:strokeLineCap="round" />
+    <path android:pathData="M38,57 A16,16 0 0,1 70,57"
+        android:fillColor="#00000000"
+        android:strokeColor="#FF6EE7B7"
+        android:strokeWidth="3.2"
+        android:strokeLineCap="round" />
+
+    <!-- The four JTTY tones: a 4-GFSK symbol staircase (tones 0,2,3,1) rising from the
+         baseline, each bar an emerald gradient like FT8AF's beam disc. -->
+    <path android:pathData="M44,66 h3.6 v-5 a1.2,1.2 0 0,0 -1.2,-1.2 h-1.2 a1.2,1.2 0 0,0 -1.2,1.2 z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear"
+                android:startX="46" android:startY="59"
+                android:endX="46" android:endY="66">
+                <item android:offset="0" android:color="#FFA7F3D0" />
+                <item android:offset="1" android:color="#FF34D399" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M49.4,66 h3.6 v-10 a1.2,1.2 0 0,0 -1.2,-1.2 h-1.2 a1.2,1.2 0 0,0 -1.2,1.2 z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear"
+                android:startX="51" android:startY="54"
+                android:endX="51" android:endY="66">
+                <item android:offset="0" android:color="#FFA7F3D0" />
+                <item android:offset="1" android:color="#FF34D399" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M54.8,66 h3.6 v-13 a1.2,1.2 0 0,0 -1.2,-1.2 h-1.2 a1.2,1.2 0 0,0 -1.2,1.2 z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear"
+                android:startX="56.6" android:startY="51"
+                android:endX="56.6" android:endY="66">
+                <item android:offset="0" android:color="#FFA7F3D0" />
+                <item android:offset="1" android:color="#FF34D399" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M60.2,66 h3.6 v-7.5 a1.2,1.2 0 0,0 -1.2,-1.2 h-1.2 a1.2,1.2 0 0,0 -1.2,1.2 z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear"
+                android:startX="62" android:startY="57"
+                android:endX="62" android:endY="66">
+                <item android:offset="0" android:color="#FFA7F3D0" />
+                <item android:offset="1" android:color="#FF34D399" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <!-- Baseline under the tones. -->
+    <path android:pathData="M42,67.2 L66,67.2"
+        android:fillColor="#00000000"
+        android:strokeColor="#9934D399"
+        android:strokeWidth="0.8"
+        android:strokeLineCap="round" />
+
+    <!-- Tiny signal sparks along the outer arc edges. -->
+    <path android:pathData="M22,57 m-0.6,0 a0.6,0.6 0 1,0 1.2,0 a0.6,0.6 0 1,0 -1.2,0"
+        android:fillColor="#80A7F3D0" />
+    <path android:pathData="M86,57 m-0.6,0 a0.6,0.6 0 1,0 1.2,0 a0.6,0.6 0 1,0 -1.2,0"
+        android:fillColor="#80A7F3D0" />
+    <path android:pathData="M30,57 m-0.6,0 a0.6,0.6 0 1,0 1.2,0 a0.6,0.6 0 1,0 -1.2,0"
+        android:fillColor="#80A7F3D0" />
+    <path android:pathData="M78,57 m-0.6,0 a0.6,0.6 0 1,0 1.2,0 a0.6,0.6 0 1,0 -1.2,0"
+        android:fillColor="#80A7F3D0" />
+</vector>

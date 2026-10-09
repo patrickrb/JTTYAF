@@ -16,10 +16,10 @@ import release_notes as rn
 
 BODY = (
     "## Release notes\r\n\r\n"
-    "<!-- ft8af-notes-start -->\r\n"
+    "<!-- jttyaf-notes-start -->\r\n"
     "New: hamlib CAT support.\r\nFixes for Icom SWR meters.\r\n\r\n"
-    "<!-- ft8af-notes-end -->\r\n\r\n"
-    "<!-- ft8af-version: 0.151.0 -->\r\n"
+    "<!-- jttyaf-notes-end -->\r\n\r\n"
+    "<!-- jttyaf-version: 0.151.0 -->\r\n"
     "_Version `0.151.0` — promoted from android-dev.1155._\r\n"
 )
 NOTES = "New: hamlib CAT support.\nFixes for Icom SWR meters.\n\n"
@@ -32,7 +32,7 @@ class DecideTest(unittest.TestCase):
         self.assertIsNone(out.error)
         self.assertEqual(out.notes, NOTES)
         self.assertNotIn("\r", out.body)
-        self.assertIn("<!-- ft8af-version: 0.151.0 -->", out.body)
+        self.assertIn("<!-- jttyaf-version: 0.151.0 -->", out.body)
 
     def test_existing_release_on_push_restores_too(self):
         out = rn.decide("push", "android-v0.151.0", 0, "", BODY)
@@ -77,7 +77,7 @@ class DecideTest(unittest.TestCase):
         self.assertIn("no markers here", out.body)
 
     def test_blank_notes_between_markers_on_dispatch_is_an_error(self):
-        body = "<!-- ft8af-notes-start -->\n\n   \n<!-- ft8af-notes-end -->\n"
+        body = "<!-- jttyaf-notes-start -->\n\n   \n<!-- jttyaf-notes-end -->\n"
         out = rn.decide("workflow_dispatch", "android-v0.151.0", 0, "", body)
         self.assertIsNotNone(out.error)
         self.assertIn("no release notes between", out.error)
@@ -85,7 +85,7 @@ class DecideTest(unittest.TestCase):
     def test_end_marker_before_start_is_malformed(self):
         # A lenient scan would capture everything after the start marker and
         # ship the trailing release text to Play.
-        body = "<!-- ft8af-notes-end -->\n<!-- ft8af-notes-start -->\ntrailing text\n"
+        body = "<!-- jttyaf-notes-end -->\n<!-- jttyaf-notes-start -->\ntrailing text\n"
         out = rn.decide("workflow_dispatch", "android-v0.151.0", 0, "", body)
         self.assertIsNotNone(out.error)
         self.assertIn("end marker comes before", out.error)
@@ -94,15 +94,15 @@ class DecideTest(unittest.TestCase):
         self.assertEqual(out.notes, "")
 
     def test_duplicate_markers_are_malformed(self):
-        body = ("<!-- ft8af-notes-start -->\nA\n<!-- ft8af-notes-end -->\n"
-                "<!-- ft8af-notes-start -->\nB\n<!-- ft8af-notes-end -->\n")
+        body = ("<!-- jttyaf-notes-start -->\nA\n<!-- jttyaf-notes-end -->\n"
+                "<!-- jttyaf-notes-start -->\nB\n<!-- jttyaf-notes-end -->\n")
         out = rn.decide("workflow_dispatch", "android-v0.151.0", 0, "", body)
         self.assertIsNotNone(out.error)
         self.assertIn("found 2 and 2", out.error)
 
     def test_only_one_of_the_markers_is_malformed(self):
         out = rn.decide("workflow_dispatch", "android-v0.151.0", 0, "",
-                        "<!-- ft8af-notes-start -->\nA\n")
+                        "<!-- jttyaf-notes-start -->\nA\n")
         self.assertIsNotNone(out.error)
 
 
@@ -148,7 +148,7 @@ class MainTest(unittest.TestCase):
             return f.read()
 
     def test_restored_notes_are_byte_capped_for_play(self):
-        body = "<!-- ft8af-notes-start -->\n" + "\u0416" * 300 + "\n<!-- ft8af-notes-end -->\n"
+        body = "<!-- jttyaf-notes-start -->\n" + "\u0416" * 300 + "\n<!-- jttyaf-notes-end -->\n"
         code, out = self.run_main("workflow_dispatch", 0, "", body)
         self.assertEqual(code, 0)
         self.assertLessEqual(len(self.read("notes.txt").encode("utf-8")), rn.PLAY_NOTES_LIMIT)
@@ -263,7 +263,7 @@ class EnsureNotesTest(unittest.TestCase):
         # ship's restore accepts that body — while a blank producer output that
         # skipped ensure_notes would have been refused.
         def body_for(notes):
-            return ("## Release notes\n\n%s\n%s\n%s\n\n<!-- ft8af-version: 0.151.0 -->\n"
+            return ("## Release notes\n\n%s\n%s\n%s\n\n<!-- jttyaf-version: 0.151.0 -->\n"
                     % (rn.START, notes, rn.END))
         blank, _ = "\n", None
         refused = rn.decide("workflow_dispatch", "android-v0.151.0", 0, "", body_for(blank))

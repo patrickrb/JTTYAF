@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tabs -->
+    <string name="tab_operate">Operate</string>
+
+    <!-- JTTY profiles (text packing) -->
+    <string name="jtty_profile_generic">General</string>
+    <string name="jtty_profile_rtty_roundup">RTTY Roundup</string>
+    <string name="jtty_profile_field_day">Field Day</string>
+
+    <!-- Settings → Transmission → JTTY -->
+    <string name="settings_section_jtty">JTTY</string>
+    <string name="settings_jtty_profile">Contest profile</string>
+    <string name="settings_jtty_profile_desc">How exchanges are packed: RTTY Roundup sends 599 + serial in one frame, Field Day packs class and section</string>
+    <string name="settings_jtty_echo_tx">Echo my transmissions</string>
+    <string name="settings_jtty_echo_tx_desc">Show the text you send in the receive window, like a teleprinter</string>
+    <string name="settings_jtty_wide_search">Decode the whole passband</string>
+    <string name="settings_jtty_wide_search_desc">Print every JTTY station between 300 and 2700 Hz. Off decodes only around your RX frequency, which saves battery</string>
+
+    <!-- Operate screen -->
+    <string name="operate_title">JTTY</string>
+    <string name="operate_rx_empty">Listening for JTTY… Decodes print here as they arrive.</string>
+    <string name="operate_tx_hint">Type a message (max 80 chars)</string>
+    <string name="operate_send">Send</string>
+    <string name="operate_stop">Stop</string>
+    <string name="operate_frames">%1$d frame(s) · %2$.1f s</string>
+    <string name="operate_too_long">Too long — JTTY sends at most 80 characters</string>
+    <string name="operate_unpackable">That text cannot be sent</string>
+    <string name="operate_dx_call">DX call</string>
+    <string name="operate_dx_call_hint">Tap a decode or type</string>
+    <string name="operate_serial">Serial</string>
+    <string name="operate_rst">RST</string>
+    <string name="operate_log_qso">Log QSO</string>
+    <string name="operate_qso_logged">Logged %1$s</string>
+    <string name="operate_set_callsign_first">Set your callsign in Settings first</string>
+    <string name="operate_macro_edit_title">Edit F%1$d macro</string>
+    <string name="operate_macro_help">%M your call · %H DX call · %E 599 + serial</string>
+    <string name="operate_macro_reset">Reset to default</string>
+    <string name="operate_clear">Clear</string>
+    <string name="operate_own_tx">TX</string>
+    <string name="operate_incomplete">(incomplete)</string>
+    <string name="operate_sending">Sending</string>
+
+    <!-- TX strip -->
+    <string name="tx_status_idle">Receiving</string>
+    <string name="tx_rx_offset">RX/TX offset</string>
+</resources>

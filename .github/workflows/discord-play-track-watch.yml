@@ -59,7 +59,7 @@ jobs:
         env:
           PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          PACKAGE_NAME: radio.ks3ckc.ft8af
+          PACKAGE_NAME: radio.ks3ckc.jttyaf
         run: python .github/scripts/play_track_watch.py state/tracks.json
 
       - name: Push updated state

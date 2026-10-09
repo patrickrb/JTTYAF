@@ -4,7 +4,7 @@ Three platforms (Android, desktop, iOS) build and release **independently** —
 each has its own workflow, its own path filter, its own tag namespace, and its
 own required status-check gate. A change to one platform never rebuilds the
 others (except a change to the shared native C core under
-`ft8af/app/src/main/cpp/**`, which all three depend on).
+`jttyaf/app/src/main/cpp/**`, which all three depend on).
 
 ## Branch lifecycle
 
@@ -66,7 +66,7 @@ Per-platform prefixes keep the Releases page unambiguous:
   two-part `android-v0.149` form; they normalise to `0.149.0` so numbering stays
   continuous. Android seeds from a legacy bare `v*` tag if no `android-v*`
   exists yet.
-- iOS is CI-only: it builds the FT8AFKit test suite and an unsigned simulator
+- iOS is CI-only: it builds the JTTYAFKit test suite and an unsigned simulator
   build to prove it compiles. A distributable `.ipa` needs an Apple Developer
   cert + provisioning profile / TestFlight, which are not wired up yet.
 
@@ -77,18 +77,18 @@ Ported from Sorrel's `play-beta.yml`. On a push to `staging` the Android
 
 1. Takes the latest `android-v*` tag as the baseline and collects everything
    from there to `HEAD`: merged PRs (number, branch, title), the commit log,
-   and size signals (commit count, `ft8af/` diff stat, changed files by area).
-2. If nothing under `ft8af/` changed (an iOS- or desktop-only promotion) it
+   and size signals (commit count, `jttyaf/` diff stat, changed files by area).
+2. If nothing under `jttyaf/` changed (an iOS- or desktop-only promotion) it
    builds but **cuts no release** — no empty versions.
 3. Otherwise asks Claude (`claude-opus-5`, structured output) for the semver
    bump — `major` / `minor` / `patch`, judged from both content and size, with
-   changes outside `ft8af/` not counting — and for ≤400-character Play release
+   changes outside `jttyaf/` not counting — and for ≤400-character Play release
    notes aimed at ham operators.
 4. Builds `versionName = <x.y.z>-dev.<run#>`, tags `android-dev.<run#>`, and
    publishes the notes to the GitHub prerelease body **and** the Play internal
    track's "Release notes" (`whatsNewDirectory`). The prerelease body also
-   carries hidden markers (`<!-- ft8af-version: x.y.z -->` and
-   `<!-- ft8af-notes-start/end -->`).
+   carries hidden markers (`<!-- jttyaf-version: x.y.z -->` and
+   `<!-- jttyaf-notes-start/end -->`).
 
 On the later push to `main` the job looks for the newest `android-dev.*` tag
 that is an ancestor of `HEAD` and not already shipped, reads the version and
