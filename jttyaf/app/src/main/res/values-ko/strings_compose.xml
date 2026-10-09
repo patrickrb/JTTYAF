@@ -57,7 +57,7 @@
     <string name="status_pending">대기 중</string>
 
     <!-- ===== Splash / app-level ===== -->
-    <string name="splash_tagline">FT8 · 모바일 동반자</string>
+    <string name="splash_tagline">JTTY · 모바일 동반자</string>
     <string name="splash_initializing">무전기 초기화 중</string>
     <string name="splash_version">v%1$s · 빌드 %2$s</string>
     <string name="app_set_callsign_first">CQ를 호출하기 전에 설정에서 콜사인을 입력하세요</string>

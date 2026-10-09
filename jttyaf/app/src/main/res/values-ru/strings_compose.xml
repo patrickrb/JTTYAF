@@ -46,7 +46,7 @@
     <string name="status_pending">ОЖИДАНИЕ</string>
 
     <!-- ===== Splash / app-level ===== -->
-    <string name="splash_tagline">FT8 · МОБИЛЬНЫЙ КОМПАНЬОН</string>
+    <string name="splash_tagline">JTTY · МОБИЛЬНЫЙ КОМПАНЬОН</string>
     <string name="splash_initializing">ИНИЦИАЛИЗАЦИЯ РАДИО</string>
     <string name="splash_version">v%1$s · сборка %2$s</string>
     <string name="app_set_callsign_first">Укажите свой позывной в настройках перед вызовом CQ</string>

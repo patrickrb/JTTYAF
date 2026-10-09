@@ -46,7 +46,7 @@
     <string name="status_pending">待处理</string>
 
     <!-- ===== 启动页 / 应用级 ===== -->
-    <string name="splash_tagline">FT8 · 移动伴侣</string>
+    <string name="splash_tagline">JTTY · 移动伴侣</string>
     <string name="splash_initializing">正在初始化电台</string>
     <string name="splash_version">v%1$s · 构建 %2$s</string>
     <string name="app_set_callsign_first">呼叫 CQ 前请先在设置中填写您的呼号</string>

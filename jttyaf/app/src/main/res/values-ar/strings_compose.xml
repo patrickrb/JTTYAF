@@ -57,7 +57,7 @@
     <string name="status_pending">قيد الانتظار</string>
 
     <!-- ===== Splash / app-level ===== -->
-    <string name="splash_tagline">FT8 · الرفيق المحمول</string>
+    <string name="splash_tagline">JTTY · الرفيق المحمول</string>
     <string name="splash_initializing">جارٍ تهيئة الراديو</string>
     <string name="splash_version">v%1$s · بناء %2$s</string>
     <string name="app_set_callsign_first">اضبط نداءك في الإعدادات قبل النداء بـ CQ</string>

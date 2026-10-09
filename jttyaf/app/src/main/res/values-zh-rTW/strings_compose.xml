@@ -46,7 +46,7 @@
     <string name="status_pending">待處理</string>
 
     <!-- ===== Splash / app-level ===== -->
-    <string name="splash_tagline">FT8 · 行動夥伴</string>
+    <string name="splash_tagline">JTTY · 行動夥伴</string>
     <string name="splash_initializing">正在初始化無線電</string>
     <string name="splash_version">v%1$s · build %2$s</string>
     <string name="app_set_callsign_first">呼叫 CQ 前請先在設定中設定您的呼號</string>

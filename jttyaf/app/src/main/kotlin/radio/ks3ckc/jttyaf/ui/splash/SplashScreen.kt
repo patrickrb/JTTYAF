@@ -162,7 +162,7 @@ fun JttyAfSplashScreen(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "ft8af.app",
+                text = "jttyaf.app",
                 color = Color(0xFF8A96B1).copy(alpha = 0.45f),
                 fontSize = 10.sp,
                 fontFamily = GeistMonoFamily,

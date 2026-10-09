@@ -161,12 +161,12 @@ private fun AboutDialog(onDismiss: () -> Unit) {
                 fontSize = 14.sp,
             )
             Text(
-                text = "ft8af.app",
+                text = "jttyaf.app",
                 color = Accent,
                 fontSize = 14.sp,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { uriHandler.openUri("https://ft8af.app") },
+                    .clickable { uriHandler.openUri("https://jttyaf.app") },
             )
 
             Text(
