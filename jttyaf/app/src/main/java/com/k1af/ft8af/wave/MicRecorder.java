@@ -432,6 +432,23 @@ public class MicRecorder {
     public synchronized void start(){
         if (isRunning) return;
 
+        // Debug-only WAV injection (see WavInjector): a debug build with an inject.wav
+        // present feeds that file into the fan-out instead of any real input, so the RX
+        // chain can be demoed/recorded with no radio. Checked before the real sources so
+        // it also works where AudioRecord is unavailable (emulator without a mic).
+        java.io.File inject = WavInjector.find(GeneralVariables.getMainContext());
+        if (inject != null) {
+            float[] samples = WavInjector.load(inject, sampleRateInHz);
+            if (samples != null) {
+                isRunning = true;
+                final int myGeneration = captureGeneration;
+                captureThread = WavInjector.startThread(
+                        samples, sampleRateInHz, () -> onDataListener,
+                        () -> captureLoopShouldContinue(isRunning, myGeneration, captureGeneration));
+                return;
+            }
+        }
+
         if (useUsbAudio && usbAudioDevice != null) {
             isRunning = true;
             startUsbCapture();

@@ -846,7 +846,7 @@
     <string name="voice_recognizer_unavailable">Speech recognition is not available on this device</string>
     <string name="voice_recognizer_error">Speech recognition error</string>
     <string name="rx_service_channel_name">Background receiving</string>
-    <string name="rx_service_channel_desc">Keeps FT8 decoding running while the app is in the background or the screen is off</string>
+    <string name="rx_service_channel_desc">Keeps JTTY decoding running while the app is in the background or the screen is off</string>
     <string name="rx_service_title">JTTYAF is receiving</string>
     <string name="rx_service_text">Decoding in the background</string>
 
