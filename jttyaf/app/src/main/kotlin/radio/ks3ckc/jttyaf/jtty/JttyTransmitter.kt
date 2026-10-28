@@ -22,6 +22,7 @@ class JttyTransmitter @JvmOverloads constructor(
     private val keyer: Keyer,
     private val player: Player,
     private val tuneActive: TuneActiveCheck = TuneActiveCheck { false },
+    private val txTap: TxTap? = null,
     private val sampleRateSource: () -> Int = { GeneralVariables.audioSampleRate },
     private val f0Source: () -> Float = { GeneralVariables.getBaseFrequency() },
     private val profileSource: () -> Int = { GeneralVariables.jttyProfile },
@@ -51,6 +52,15 @@ class JttyTransmitter @JvmOverloads constructor(
     /** Whether the Tune carrier currently owns the rig. */
     fun interface TuneActiveCheck {
         fun isActive(): Boolean
+    }
+
+    /**
+     * Debug observer of the exact audio buffer about to be played (TxWavDumper installs
+     * one in debug builds). Called on the TX worker after encode and before keying; a
+     * throwing tap is logged and ignored — it can never stop or delay-key an over.
+     */
+    fun interface TxTap {
+        fun onTxAudio(buffer: FloatArray, sampleRate: Int)
     }
 
     /** Why [send] refused a message. */
@@ -145,6 +155,13 @@ class JttyTransmitter @JvmOverloads constructor(
             val audio = codec.encode(text, profileSource(), f0, sampleRate, NativeJttyCodec.ENCODE_AMPLITUDE)
             val durationMs = audio.size * 1000L / sampleRate
             log("JTTY TX: start — \"$text\" f0=${f0}Hz samples=${audio.size} rate=$sampleRate durationMs=$durationMs")
+            txTap?.let { tap ->
+                try {
+                    tap.onTxAudio(audio, sampleRate)
+                } catch (t: Throwable) {
+                    log("JTTY TX: tap failed — ${t.javaClass.simpleName}: ${t.message}")
+                }
+            }
 
             // A cancel that lands during encode would otherwise be lost: the sink clears its
             // own cancelled flag on play() entry, so gate keying/playback on our own flag.
