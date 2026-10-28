@@ -45,17 +45,24 @@ class JttyTransmitterTest {
         override fun cancel() { events += "cancel" }
     }
 
-    private fun transmitter(codec: FakeCodec, rec: Recorder, tuneActive: Boolean = false) =
+    private fun transmitter(
+        codec: FakeCodec,
+        rec: Recorder,
+        tuneActive: Boolean = false,
+        txTap: JttyTransmitter.TxTap? = null,
+        log: (String) -> Unit = {},
+    ) =
         JttyTransmitter(
             codec = codec,
             keyer = rec,
             player = rec,
             tuneActive = { tuneActive },
+            txTap = txTap,
             sampleRateSource = { 12_000 },
             f0Source = { 1500f },
             profileSource = { 0 },
             settleDelayMsSource = { 0L },
-            log = {},
+            log = log,
             clock = { 0L },
             workerRunner = { it.run() },
         )
@@ -133,5 +140,46 @@ class JttyTransmitterTest {
     @Test
     fun normalizeUppercasesAndCollapsesWhitespace() {
         assertThat(JttyTransmitter.normalize("  cq\t k1abc   cq ")).isEqualTo("CQ K1ABC CQ")
+    }
+
+    @Test
+    fun txTapSeesTheExactBufferBeforeKeying() {
+        val codec = FakeCodec()
+        val rec = Recorder()
+        val tap = JttyTransmitter.TxTap { buffer, rate -> rec.events += "tap(${buffer.size}@$rate)" }
+        val tx = transmitter(codec, rec, txTap = tap)
+
+        assertThat(tx.send("cq k1abc cq")).isEqualTo(JttyTransmitter.Reject.NONE)
+        drainMainLooper()
+
+        val n = 3 * 59 * 384
+        assertThat(rec.events).containsExactly("tap($n@12000)", "keyDown", "play($n@12000)", "keyUp").inOrder()
+    }
+
+    @Test
+    fun aThrowingTxTapIsLoggedAndTheOverStillGoesOut() {
+        val codec = FakeCodec()
+        val rec = Recorder()
+        val logs = ArrayList<String>()
+        val tap = JttyTransmitter.TxTap { _, _ -> throw IllegalStateException("disk full") }
+        val tx = transmitter(codec, rec, txTap = tap, log = { logs += it })
+        var transmitted: String? = null
+        tx.setOnTransmitted { transmitted = it }
+
+        assertThat(tx.send("cq k1abc cq")).isEqualTo(JttyTransmitter.Reject.NONE)
+        drainMainLooper()
+
+        assertThat(rec.events).containsExactly("keyDown", "play(${3 * 59 * 384}@12000)", "keyUp").inOrder()
+        assertThat(transmitted).isEqualTo("CQ K1ABC CQ")
+        assertThat(logs.any { it.contains("tap failed") && it.contains("disk full") }).isTrue()
+    }
+
+    @Test
+    fun noTapByDefault() {
+        val rec = Recorder()
+        val tx = transmitter(FakeCodec(), rec)
+        tx.send("cq k1abc cq")
+        drainMainLooper()
+        assertThat(rec.events.none { it.startsWith("tap") }).isTrue()
     }
 }

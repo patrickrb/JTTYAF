@@ -81,6 +81,15 @@ jttyaf/app/src/main/cpp/jttyaf_glue/run_jtty_host_tests.sh    # Linux/macOS/WSL:
 `run_jtty_host_tests.ps1 -Sample <wav>` additionally decodes a WSJT-X recording
 (the official sample is `sourceforge.net/projects/wsjt/files/samples/JTTY/260807_134110.wav`).
 
+**Interop against WSJT-X itself** (the only test that proves TX, not just RX):
+WSJT-X 3.2+ ships `rjtty.exe`/`sjtty.exe`, command-line JTTY decoder/encoder.
+`run_jtty_interop.ps1` encodes a message set with each side and decodes it with
+the other, failing on any mismatch; it SKIPs when no WSJT-X is installed
+(releases: `github.com/WSJTX/wsjtx/releases`, install side by side under
+`C:/WSJT/wsjtx-<version>/`). Pass `-TxWav <files>` to decode dumps from the app's
+debug `tx_dump/` (below) with both decoders. WSJT-X is GPL: these binaries are
+only ever *executed* as a black-box oracle, never read.
+
 ## Build & Deploy
 
 After making code changes, build and install on the connected device when one is attached:
@@ -105,6 +114,9 @@ adb -s <phone-serial> pull /sdcard/Android/data/radio.ks3ckc.jttyaf/files/debug.
 ```
 
 The receive/transmit text history is `jtty_all.txt` in the same directory.
+Debug builds also write every JTTY over's audio as a 12 kHz 16-bit WAV into
+`tx_dump/` in that directory (`TxWavDumper`, newest 20 kept) — the exact buffer
+handed to the audio sink, for `run_jtty_interop.ps1 -TxWav`. Release builds never do.
 The `applicationId` is `radio.ks3ckc.jttyaf`; pid-filter logcat with
 `adb logcat --pid=$(adb shell pidof radio.ks3ckc.jttyaf)`. Useful logcat tags:
 `NativeJttyCodec`, `MicRecorder`, `UsbAudioDevice`, `CableConnector`,

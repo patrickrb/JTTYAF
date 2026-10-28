@@ -1,7 +1,8 @@
 // jtty_cli.c — small command-line front end for jtty_lib (host only).
 //
 //   jtty_cli encode "<text>" out.wav [f0] [rate]   GFSK audio of the message
-//   jtty_cli decode in.wav [flo fhi]               print every accepted frame
+//   jtty_cli decode in.wav [flo fhi]               print every accepted frame, then
+//                                                  message: "<frames joined>" for scripts
 //   jtty_cli tones "<text>"                        payload hex + 59 tones/frame
 
 #include "jtty_test_util.h"
@@ -67,14 +68,36 @@ static int cmd_decode(int argc, char** argv)
     double cpu = test_now() - t0;
     jtty_decode_t d;
     int count = 0;
+    // Frames pop in time order. Join them the way the app's JttyMessageAssembler does
+    // (protocol doc section 4): TEXT5 atoms (type bits i2 == 3) are slices of one piece of
+    // free text and concatenate directly; any pair involving a structured atom (a call,
+    // a report) is separated by one space. Then trim and collapse space runs.
+    char msg[JTTY_MAX_FRAMES * 8 + 1] = { 0 };
+    int prev_text5 = 1;
     while (jtty_rx_pop(rx, &d)) {
         ++count;
         printf("%8.3f s  %7.1f Hz  %5.1f dB  sync %.2f  rank %d  pass %d  0x%09llX  %s%s\n",
                (double)d.start_sample / rate, d.freq_hz, d.snr_db, d.sync_score, d.list_rank, d.pass,
                (unsigned long long)d.payload34, d.text, d.eom ? "  <EOM>" : "");
+        int text5 = ((d.payload34 >> 2) & 3) == 3;
+        size_t have = strlen(msg);
+        if (count > 1 && !(prev_text5 && text5) && have < sizeof(msg) - 1) msg[have++] = ' ';
+        msg[have] = 0;
+        if (have < sizeof(msg) - 1) strncat(msg, d.text, sizeof(msg) - 1 - have);
+        prev_text5 = text5;
     }
+    // Display form: trimmed, runs of spaces collapsed to one.
+    size_t len = 0, k = 0;
+    while (msg[k] == ' ') ++k;
+    for (; msg[k]; ++k) {
+        if (msg[k] == ' ' && len > 0 && msg[len - 1] == ' ') continue;
+        msg[len++] = msg[k];
+    }
+    while (len > 0 && msg[len - 1] == ' ') --len;
+    msg[len] = 0;
     printf("%d frame(s); %.2f s audio decoded in %.2f s (x%.3f real time)\n", count, (double)n / rate, cpu,
            cpu / ((double)n / rate));
+    printf("message: \"%s\"\n", msg);
     jtty_rx_destroy(rx);
     free(x);
     return 0;

@@ -114,6 +114,7 @@ import com.k1af.ft8af.transmit.TuneOperator;
 import com.k1af.ft8af.ui.ToastMessage;
 import com.k1af.ft8af.wave.HamRecorder;
 import com.k1af.ft8af.wave.MicRecorder;
+import com.k1af.ft8af.wave.TxWavDumper;
 import com.k1af.ft8af.x6100.X6100Radio;
 
 import radio.ks3ckc.jttyaf.UsbPermissionIntentsKt;
@@ -653,7 +654,11 @@ public class MainViewModel extends ViewModel {
                         transmitAudioSink.cancel();
                     }
                 },
-                () -> tuneOperator.isTuning());
+                () -> tuneOperator.isTuning(),
+                // Debug builds dump every over's audio to tx_dump/ so the real TX output
+                // can be cross-decoded by WSJT-X (run_jtty_interop.ps1 -TxWav). Null in
+                // release builds.
+                TxWavDumper.tap(GeneralVariables.getMainContext()));
         // Our own transmissions are echoed into the receive text (keyboard modes show
         // both sides of the conversation) and the listener uses them to tag any
         // loopback decode of our own signal.
