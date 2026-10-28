@@ -267,16 +267,22 @@ dependencies {
     // ui-test-junit4 below resolves to no version and fails. Apply the BOM here
     // too so it gets the same managed version the main + unit-test classpaths do.
     androidTestImplementation composeBom
-    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    // Keep every androidx.test artifact in the same release train. ext:junit 1.1.5
+    // pulls core 1.5.0 while rules 1.6.1 / the compose BOM pull runner 1.6.x and
+    // monitor 1.7.x; that mix makes ActivityScenario.launch die on the device with
+    // NoClassDefFoundError: androidx.test.internal.platform.app.ActivityInvoker$-CC
+    // (the 1.6 runner expects the 1.6 core). Pin core + runner explicitly.
+    androidTestImplementation 'androidx.test:core:1.6.1'
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
     androidTestImplementation 'androidx.compose.ui:ui-test-junit4'
     // AppSmokeTest asserts with Truth (assertThat). Truth is on testImplementation
     // for the JVM unit tests but does not flow into the androidTest classpath, so
     // the instrumented build needs its own copy or compileDebugAndroidTestKotlin
     // fails with "Unresolved reference: truth".
     androidTestImplementation 'com.google.truth:truth:1.4.2'
-    // GrantPermissionRule (AppSmokeTest) lives in androidx.test:rules. 1.6.1
-    // aligns with the androidx.test:monitor:1.6.1 already on the classpath.
+    // GrantPermissionRule (AppSmokeTest) lives in androidx.test:rules.
     androidTestImplementation 'androidx.test:rules:1.6.1'
 }
 
