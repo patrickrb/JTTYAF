@@ -42,7 +42,10 @@ name: Android CI & Release
 # promotion) builds but does not cut a release, so no empty versions are made.
 # Requires the ANTHROPIC_API_KEY repository secret; without it (or on an API
 # failure) the run warns, falls back to a patch bump, and uses the PR titles as
-# notes rather than blocking the release.
+# notes rather than blocking the release. A human can override either by hand:
+# put <!-- jttyaf-version: x.y.z --> and/or notes between the
+# <!-- jttyaf-notes-start --> / <!-- jttyaf-notes-end --> markers in the
+# promotion PR's description (see the "pin" step).
 #
 # PATH-FILTERED: on pull requests and dev pushes this whole pipeline only runs
 # when Android-relevant files change (jttyaf/** — which includes the shared
@@ -611,12 +614,48 @@ jobs:
           echo "tag=$cand" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
+      - name: Read a version or notes pinned by hand in the promotion PR
+        id: pin
+        # A human can fix the release in the promotion PR's description, using
+        # the same hidden markers the release bodies carry:
+        #   <!-- jttyaf-version: x.y.z -->        pins the semver (AI bump skipped)
+        #   <!-- jttyaf-notes-start --> ... <!-- jttyaf-notes-end -->
+        #                                        replaces the AI's what's-new
+        # Either alone is fine; a body with neither changes nothing. The PR is
+        # found through the commit -> pulls lookup, so it works for merge, squash
+        # and rebase merges alike. On main a promoted staging candidate still
+        # wins (production ships what the testers ran). The parsing and its
+        # rules (strict x.y.z, must be above the previous production version,
+        # notes must not be blank) live in release_notes.py `pin`, unit-tested.
+        if: >-
+          (steps.lane.outputs.lane == 'production' || steps.lane.outputs.lane == 'dev')
+          && steps.changes.outputs.android_changed == 'true'
+          && steps.candidate.outputs.found != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PREV_VERSION: ${{ steps.changes.outputs.prev_version }}
+        run: |
+          set -euo pipefail
+          PR=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" \
+                --jq "[.[] | select(.base.ref == \"$GITHUB_REF_NAME\" and .merged_at != null)] | sort_by(.merged_at) | last // empty" 2>/dev/null || true)
+          if [[ -z "$PR" ]]; then
+            echo "No merged PR into $GITHUB_REF_NAME produced $GITHUB_SHA — nothing pinned."
+            { echo "found=false"; echo "version="; echo "notes=false"; } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          NUM=$(jq -r '.number' <<< "$PR")
+          jq -r '.body // ""' <<< "$PR" > pr-body.md
+          python3 .github/scripts/release_notes.py pin \
+            --body pr-body.md --prev-version "$PREV_VERSION" --source "PR #$NUM" \
+            --notes-out pinned-notes.txt --github-output "$GITHUB_OUTPUT"
+
       - name: Generate release notes and semver bump with Claude
         id: ai
         if: >-
           (steps.lane.outputs.lane == 'production' || steps.lane.outputs.lane == 'dev')
           && steps.changes.outputs.android_changed == 'true'
           && steps.candidate.outputs.found != 'true'
+          && steps.pin.outputs.version == ''
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           PREV_VERSION: ${{ steps.changes.outputs.prev_version }}
@@ -720,11 +759,19 @@ jobs:
           CAND_FOUND: ${{ steps.candidate.outputs.found }}
           CAND_TAG: ${{ steps.candidate.outputs.tag }}
           CAND_VERSION: ${{ steps.candidate.outputs.version }}
+          PIN_VERSION: ${{ steps.pin.outputs.version }}
+          PIN_NOTES: ${{ steps.pin.outputs.notes }}
           BUMP: ${{ steps.ai.outputs.bump }}
           BUMP_SOURCE: ${{ steps.ai.outputs.source }}
         run: |
           set -euo pipefail
           release_tag=""; version_name=""; should_release=false; is_prerelease=false; play_track=""; version_source=""
+          # Notes pinned in the promotion PR replace whatever the AI step wrote
+          # (that step is skipped entirely when the version is pinned too).
+          if [[ "$PIN_NOTES" == "true" ]]; then
+            cp pinned-notes.txt notes.txt
+            echo "Using the release notes pinned in the promotion PR."
+          fi
           case "$LANE" in
             tag)
               release_tag="${GITHUB_REF_NAME}"
@@ -737,6 +784,8 @@ jobs:
               else
                 if [[ "$CAND_FOUND" == "true" ]]; then
                   version="$CAND_VERSION"; version_source="promoted from $CAND_TAG"
+                elif [[ -n "$PIN_VERSION" ]]; then
+                  version="$PIN_VERSION"; version_source="pinned in the promotion PR"
                 else
                   version=$(bash .github/scripts/android-next-version.sh "$PREV_VERSION" "$BUMP")
                   version_source="$BUMP bump ($BUMP_SOURCE) from ${PREV_VERSION}"

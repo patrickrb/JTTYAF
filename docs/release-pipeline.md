@@ -107,6 +107,28 @@ and has a self-test (`--self-test`).
 call fails, the run annotates a warning, takes a **patch** bump, and uses the
 PR titles as the notes — a release is never blocked on the AI step.
 
+### Pinning the version or the notes by hand
+
+Write them into the **promotion PR's description** (the dev → staging PR; or
+the staging → main PR when there is no staging build to promote), using the
+same hidden markers the release bodies carry:
+
+```
+<!-- jttyaf-version: 1.0.0 -->
+<!-- jttyaf-notes-start -->
+Plain-text Play release notes, under 500 bytes.
+<!-- jttyaf-notes-end -->
+```
+
+Either one may appear alone. A pinned version skips the AI bump step; pinned
+notes replace the AI's what's-new. The PR is found from the merge commit
+(`commits/<sha>/pulls`), so merge, squash and rebase merges all work. The rules
+are enforced by `release_notes.py pin` (unit-tested): the version must be a
+plain `x.y.z` **above the previous production version**, and the notes markers
+must not be empty — a bad pin fails the run with an `::error::` rather than
+silently falling back. On `main` a promoted staging candidate still takes
+precedence, so production ships exactly what the internal testers ran.
+
 ## Store listings
 
 Play *store listing* text (title, descriptions, per-locale metadata) lives in

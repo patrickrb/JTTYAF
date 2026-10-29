@@ -321,5 +321,155 @@ class EnsureNotesMainTest(unittest.TestCase):
         self.assertIn("::warning title=Release notes trimmed", out)
 
 
+PIN_BODY = (
+    "First dev -> staging promotion.\r\n\r\n"
+    "<!-- jttyaf-version: 1.0.0 -->\r\n"
+    "<!-- jttyaf-notes-start -->\r\n"
+    "First release of JTTYAF.\r\nDecode and send JTTY on your phone.\r\n"
+    "<!-- jttyaf-notes-end -->\r\n\r\n"
+    "Generated with Claude Code\r\n"
+)
+
+
+class PinFromBodyTest(unittest.TestCase):
+    def test_version_and_notes_pinned(self):
+        out = rn.pin_from_body(PIN_BODY, "0.0.0", "PR #12")
+        self.assertIsNone(out.error)
+        self.assertTrue(out.found)
+        self.assertEqual(out.version, "1.0.0")
+        self.assertEqual(out.notes, "First release of JTTYAF.\nDecode and send JTTY on your phone.\n")
+        self.assertIn("PR #12", out.message)
+        self.assertIn("version 1.0.0", out.message)
+        self.assertIn("release notes", out.message)
+
+    def test_version_only(self):
+        out = rn.pin_from_body("Promote.\n<!-- jttyaf-version: 2.3.4 -->\n", "2.3.3")
+        self.assertTrue(out.found)
+        self.assertEqual(out.version, "2.3.4")
+        self.assertEqual(out.notes, "")
+
+    def test_notes_only_leaves_the_version_to_the_bump_step(self):
+        out = rn.pin_from_body(
+            "<!-- jttyaf-notes-start -->\nHand-written notes.\n<!-- jttyaf-notes-end -->\n", "0.5.0")
+        self.assertTrue(out.found)
+        self.assertEqual(out.version, "")
+        self.assertEqual(out.notes, "Hand-written notes.\n")
+
+    def test_body_without_markers_pins_nothing(self):
+        for body in ("Just a promotion PR.\n", "", None):
+            out = rn.pin_from_body(body, "0.0.0")
+            self.assertFalse(out.found, repr(body))
+            self.assertIsNone(out.error)
+            self.assertEqual(out.version, "")
+            self.assertEqual(out.notes, "")
+
+    def test_marker_spacing_is_tolerated(self):
+        out = rn.pin_from_body("<!-- jttyaf-version:1.2.3-->", "0.0.0")
+        self.assertEqual(out.version, "1.2.3")
+
+    def test_non_semver_version_is_an_error(self):
+        for bad in ("v1.0.0", "1.0", "1.0.0-rc1", "one"):
+            out = rn.pin_from_body("<!-- jttyaf-version: %s -->" % bad, "0.0.0")
+            self.assertIsNotNone(out.error, bad)
+            self.assertIn(bad, out.error)
+            self.assertFalse(out.found)
+
+    def test_version_not_above_previous_is_an_error(self):
+        for pinned, prev in (("1.0.0", "1.0.0"), ("0.9.9", "1.0.0"), ("1.0.0", "1.0.10")):
+            out = rn.pin_from_body("<!-- jttyaf-version: %s -->" % pinned, prev)
+            self.assertIsNotNone(out.error, (pinned, prev))
+            self.assertIn("not above the previous production version", out.error)
+
+    def test_version_compares_numerically_not_lexically(self):
+        out = rn.pin_from_body("<!-- jttyaf-version: 1.0.10 -->", "1.0.9")
+        self.assertIsNone(out.error)
+        self.assertEqual(out.version, "1.0.10")
+
+    def test_conflicting_version_markers_are_an_error(self):
+        out = rn.pin_from_body(
+            "<!-- jttyaf-version: 1.0.0 -->\n<!-- jttyaf-version: 1.1.0 -->\n", "0.0.0")
+        self.assertIsNotNone(out.error)
+        self.assertIn("more than one version", out.error)
+
+    def test_repeated_identical_version_marker_is_fine(self):
+        out = rn.pin_from_body(
+            "<!-- jttyaf-version: 1.0.0 -->\n<!-- jttyaf-version: 1.0.0 -->\n", "0.0.0")
+        self.assertIsNone(out.error)
+        self.assertEqual(out.version, "1.0.0")
+
+    def test_blank_notes_markers_are_an_error(self):
+        out = rn.pin_from_body(
+            "<!-- jttyaf-notes-start -->\n\n<!-- jttyaf-notes-end -->\n", "0.0.0")
+        self.assertIsNotNone(out.error)
+        self.assertIn("empty release-notes markers", out.error)
+
+    def test_malformed_notes_markers_are_an_error(self):
+        out = rn.pin_from_body(
+            "<!-- jttyaf-notes-end -->\nx\n<!-- jttyaf-notes-start -->\n", "0.0.0")
+        self.assertIsNotNone(out.error)
+        self.assertIn("malformed", out.error)
+
+    def test_pinned_notes_are_byte_capped_for_play(self):
+        body = "<!-- jttyaf-notes-start -->\n" + ("Ж" * 100 + "\n") * 3 + "<!-- jttyaf-notes-end -->\n"
+        out = rn.pin_from_body(body, "0.0.0")
+        self.assertIsNone(out.error)
+        self.assertLessEqual(len(out.notes.encode("utf-8")), rn.PLAY_NOTES_LIMIT)
+
+    def test_pinned_notes_round_trip_through_the_release_body_markers(self):
+        # What "Write release notes" puts between the markers must come back out
+        # unchanged for the main promotion and the manual production ship.
+        out = rn.pin_from_body(PIN_BODY, "0.0.0")
+        release_body = "## Release notes\n\n%s\n%s\n%s\n\n<!-- jttyaf-version: %s -->\n" % (
+            rn.START, out.notes, rn.END, out.version)
+        self.assertEqual(rn.extract_notes(release_body), out.notes + "\n")
+
+
+class PinMainTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+        self.body = os.path.join(self.tmp, "pr-body.md")
+        self.notes = os.path.join(self.tmp, "pinned-notes.txt")
+        self.gh_out = os.path.join(self.tmp, "github_output")
+
+    def run_pin(self, body, prev="0.0.0"):
+        with open(self.body, "w", encoding="utf-8", newline="") as f:
+            f.write(body)
+        stdout = io.StringIO()
+        with contextlib.redirect_stdout(stdout):
+            code = rn.main(["pin", "--body", self.body, "--prev-version", prev,
+                            "--source", "PR #12", "--notes-out", self.notes,
+                            "--github-output", self.gh_out])
+        gh = open(self.gh_out, encoding="utf-8").read() if os.path.exists(self.gh_out) else ""
+        return code, stdout.getvalue(), gh
+
+    def test_pinned_version_and_notes_write_the_file_and_outputs(self):
+        code, out, gh = self.run_pin(PIN_BODY)
+        self.assertEqual(code, 0)
+        self.assertEqual(gh, "found=true\nversion=1.0.0\nnotes=true\n")
+        with open(self.notes, encoding="utf-8", newline="") as f:
+            self.assertEqual(f.read(), "First release of JTTYAF.\nDecode and send JTTY on your phone.\n")
+        self.assertIn("Pinned in PR #12", out)
+
+    def test_nothing_pinned_writes_no_notes_file(self):
+        code, out, gh = self.run_pin("Promotion with no markers.\n")
+        self.assertEqual(code, 0)
+        self.assertEqual(gh, "found=false\nversion=\nnotes=false\n")
+        self.assertFalse(os.path.exists(self.notes))
+
+    def test_version_only_reports_no_notes(self):
+        code, out, gh = self.run_pin("<!-- jttyaf-version: 1.0.0 -->\n")
+        self.assertEqual(code, 0)
+        self.assertEqual(gh, "found=true\nversion=1.0.0\nnotes=false\n")
+        self.assertFalse(os.path.exists(self.notes))
+
+    def test_error_exits_1_with_an_annotation_and_no_outputs(self):
+        code, out, gh = self.run_pin("<!-- jttyaf-version: 1.0.0 -->\n", prev="1.0.0")
+        self.assertEqual(code, 1)
+        self.assertIn("::error::", out)
+        self.assertEqual(gh, "")
+        self.assertFalse(os.path.exists(self.notes))
+
+
 if __name__ == "__main__":
     unittest.main()
