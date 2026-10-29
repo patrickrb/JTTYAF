@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Release-notes helpers for android.yml: `restore` and `ensure-notes`.
+"""Release-notes helpers for android.yml: `pin`, `restore` and `ensure-notes`.
+
+`pin` runs first on a staging or main push and reads the body of the promotion
+PR that produced HEAD. A human can fix the release by hand there, using the
+same hidden markers the release bodies carry: `<!-- jttyaf-version: x.y.z -->`
+pins the semver (the AI bump step is then skipped) and notes between
+`<!-- jttyaf-notes-start -->` / `<!-- jttyaf-notes-end -->` replace the AI's
+what's-new. Either may appear alone; a body with neither changes nothing.
 
 `ensure-notes` runs in "Write release notes" for the lanes that produce notes
 (staging and main). The producers can yield a blank file — Claude's structured
@@ -189,9 +196,97 @@ def decide(event, tag, gh_status, gh_stderr, body):
         "Release %s already exists; keeping its body." % tag))
 
 
+VERSION_MARKER_RE = re.compile(r"<!-- jttyaf-version: *([^>]*?) *-->")
+SEMVER_RE = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
+
+
+def parse_semver(text):
+    """(major, minor, patch) for a strict x.y.z string, else None."""
+    if not SEMVER_RE.match(text or ""):
+        return None
+    return tuple(int(p) for p in text.split("."))
+
+
+class PinOutcome:
+    def __init__(self, found=False, version="", notes="", error=None, message=""):
+        self.found = found      # a version or notes (or both) were pinned
+        self.version = version  # "" when the body pins no version
+        self.notes = notes      # "" when the body pins no notes
+        self.error = error      # the ::error:: text, or None
+        self.message = message
+
+
+def pin_from_body(body, prev_version, source="the promotion PR"):
+    """Read a hand-pinned version and/or release notes out of a PR body.
+
+    The promotion PR (dev -> staging, or staging -> main when no staging build
+    is being promoted) may carry the same hidden markers the release bodies
+    use: `<!-- jttyaf-version: x.y.z -->` fixes the semver, and notes between
+    `<!-- jttyaf-notes-start -->` / `<!-- jttyaf-notes-end -->` replace the
+    AI's. Either may appear alone. A body with neither pins nothing
+    (found=False) and the AI step decides as usual.
+
+    Strict where it matters: a version marker must hold a plain x.y.z and must
+    be greater than the previous production version (a pin that would re-use
+    or go below a shipped version is an error, not a silent fallback), and
+    pinned notes must not be blank — blank markers mean somebody meant to write
+    notes and did not.
+    """
+    body = (body or "").replace("\r", "")
+    versions = VERSION_MARKER_RE.findall(body)
+    has_notes_markers = START in body or END in body
+    if not versions and not has_notes_markers:
+        return PinOutcome(message="No version or notes pinned in %s." % source)
+
+    version = ""
+    if versions:
+        if len(set(versions)) > 1:
+            return PinOutcome(error=(
+                "%s pins more than one version (%s); keep a single "
+                "<!-- jttyaf-version: x.y.z --> marker." % (source, ", ".join(versions))))
+        version = versions[0]
+        if parse_semver(version) is None:
+            return PinOutcome(error=(
+                "%s pins version '%s', which is not a plain x.y.z semver." % (source, version)))
+        prev = parse_semver(prev_version) or (0, 0, 0)
+        if parse_semver(version) <= prev:
+            return PinOutcome(error=(
+                "%s pins version %s, which is not above the previous production "
+                "version %s." % (source, version, prev_version or "0.0.0")))
+
+    notes = ""
+    if has_notes_markers:
+        try:
+            notes = extract_notes(body)
+        except MalformedMarkers as m:
+            return PinOutcome(error=(
+                "%s has malformed release-notes markers (%s)." % (source, m)))
+        if not notes.strip():
+            return PinOutcome(error=(
+                "%s has empty release-notes markers; write the notes between %s and %s "
+                "or remove the markers." % (source, START, END)))
+        notes = cap_notes(notes)
+
+    what = []
+    if version:
+        what.append("version %s" % version)
+    if notes:
+        what.append("release notes")
+    return PinOutcome(found=True, version=version, notes=notes,
+                      message="Pinned in %s: %s." % (source, " and ".join(what)))
+
+
 def build_arg_parser():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     sub = ap.add_subparsers(dest="command", required=True)
+
+    p = sub.add_parser("pin", help="read a hand-pinned version/notes from a promotion PR body")
+    p.add_argument("--body", required=True, help="file holding the PR body")
+    p.add_argument("--prev-version", default="0.0.0", help="previous production version (x.y.z)")
+    p.add_argument("--source", default="the promotion PR", help="how to name the PR in messages")
+    p.add_argument("--notes-out", required=True, help="written only when notes are pinned")
+    p.add_argument("--github-output",
+                   help="$GITHUB_OUTPUT; found=, version= and notes=true|false are appended")
 
     r = sub.add_parser("restore", help="restore the notes of the release a tag already has")
     r.add_argument("--event", required=True, help="$GITHUB_EVENT_NAME")
@@ -231,10 +326,34 @@ def run_ensure_notes(args):
     return 0
 
 
+def run_pin(args):
+    with open(args.body, encoding="utf-8", errors="replace") as f:
+        body = f.read()
+    out = pin_from_body(body, args.prev_version, args.source)
+    if out.error:
+        print("::error::" + out.error)
+        return 1
+    if out.notes:
+        with open(args.notes_out, "w", encoding="utf-8", newline="\n") as f:
+            f.write(out.notes if out.notes.endswith("\n") else out.notes + "\n")
+    if args.github_output:
+        with open(args.github_output, "a", encoding="utf-8", newline="\n") as f:
+            f.write("found=%s\n" % ("true" if out.found else "false"))
+            f.write("version=%s\n" % out.version)
+            f.write("notes=%s\n" % ("true" if out.notes else "false"))
+    print(out.message)
+    if out.notes:
+        print("Notes:")
+        print(out.notes)
+    return 0
+
+
 def main(argv=None):
     args = build_arg_parser().parse_args(argv)
     if args.command == "ensure-notes":
         return run_ensure_notes(args)
+    if args.command == "pin":
+        return run_pin(args)
 
     with open(args.gh_stderr, encoding="utf-8", errors="replace") as f:
         gh_stderr = f.read()
