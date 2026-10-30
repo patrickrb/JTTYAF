@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Secret-free checks. --host-only omits JVM checks, not native codec tests.
+set -euo pipefail
+
+case "${1:-}" in
+    ''|--host-only) ;;
+    *) echo "Usage: $0 [--host-only]" >&2; exit 2 ;;
+esac
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$root"
+
+echo '== Agent guidance and bootstrap checks =='
+bash .github/scripts/check-agents-md.sh --self-test
+bash .github/scripts/check-agents-md.sh
+shellcheck .agents/setup .agents/check
+echo '== Release tooling unit tests (no credentials or network) =='
+python3 -m unittest discover -s .github/scripts -p 'test_release_notes.py' -v
+echo '== Grid/state generator unit tests =='
+node --test jttyaf/scripts/*.test.mjs
+echo '== Native JTTY codec regression tests =='
+bash jttyaf/app/src/main/cpp/jttyaf_glue/run_jtty_host_tests.sh
+if [[ "${1:-}" != --host-only ]]; then
+    echo '== Shared core and Android JVM / Robolectric regression tests =='
+    ./jttyaf/gradlew -p jttyaf --no-daemon --max-workers=1 \
+        -Pkotlin.compiler.execution.strategy=in-process \
+        '-Dorg.gradle.jvmargs=-Xmx1536m -Dfile.encoding=UTF-8' \
+        :ham-radio-core:test testDebugUnitTest --stacktrace
+fi
+echo '== All selected checks passed =='

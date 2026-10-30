@@ -21,6 +21,40 @@
 
 ## Development environments
 
+### Linux / Amp orbs
+
+Run `.agents/setup` from the repository root to install JDK 17, Clang/build tools,
+Android command-line tools 19.0 (checksum verified), SDK 36, build-tools 35.0.0,
+NDK 25.1.8937393, CMake 3.22.1 and ShellCheck. It is noninteractive and safe to
+rerun; missing Debian packages require passwordless sudo and downloads require
+network access. Node.js 20+ and Python 3 are supplied by the base orb.
+The toolchain is persisted for new login shells in this checkout; after manual
+setup use `bash -lc '.agents/check'`. Setup becomes automatic for fresh orbs
+only once it reaches the project's default branch.
+
+From the repository root:
+
+```bash
+.agents/check                    # Tooling + native JTTY + core + app JVM tests
+.agents/check --host-only        # Tooling + native JTTY; no SDK/JVM required
+./jttyaf/gradlew -p jttyaf --no-daemon --max-workers=1 \
+  -Pkotlin.compiler.execution.strategy=in-process \
+  '-Dorg.gradle.jvmargs=-Xmx1536m -Dfile.encoding=UTF-8' assembleDebug
+```
+
+The APK is `jttyaf/app/build/outputs/apk/debug/app-debug.apk`. App test reports
+are in `jttyaf/app/build/reports/tests/testDebugUnitTest/`; shared-core reports
+are in `ham-radio-core/build/reports/tests/test/`. The core's 44 tests must be
+run explicitly with `:ham-radio-core:test`; `testDebugUnitTest` alone omits them.
+The host codec suite reports a skip when the optional WSJT-X WAV is absent.
+No device/emulator is required for these checks. Orbs have no KVM: do not install
+an emulator as a substitute for real Android/USB/CAT/PTT/RF validation.
+
+`ham-radio-core/` vendors the unchanged Android-free Java module from FT8AF.
+Follow its README update procedure and checksum manifest; do not modify the
+consumer's copy independently. Native/JNI, USB ownership, rig transport and
+PTT safety remain app-owned. See `docs/ham-radio-core.md` for integration scope.
+
 Contributors work from two kinds of checkout; the commands differ, so figure
 out which one you're on first (`uname` / the primary working directory) and
 follow the matching path throughout:
@@ -91,6 +125,15 @@ debug `tx_dump/` (below) with both decoders. WSJT-X is GPL: these binaries are
 only ever *executed* as a black-box oracle, never read.
 
 ## Build & Deploy
+
+Release signing and Play upload require authorized credentials; local debug
+builds need none. Never commit keys, credentials, local.properties or build
+outputs. Read `.github/workflows/` before remote delivery: pushes to staging
+publish an internal candidate; main and android-v* tags enter production release
+lanes. Do not bypass those gates or run publishing workflows to validate a PR.
+For this readiness/core rollout, production releases, promotions and rollouts
+are prohibited until the user tests **all five apps** and subsequently gives
+explicit production approval. Internal-test delivery is not that approval.
 
 After making code changes, build and install on the connected device when one is attached:
 

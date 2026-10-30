@@ -55,7 +55,12 @@ cd jttyaf
 ```
 
 Windows: `cd jttyaf && gradlew.bat installDebug`. Builds need JDK 17
-(AGP 8.7.3 / Gradle 8.11).
+(AGP 8.9.1 / Gradle 8.11.1), SDK 36 and NDK 25.1.8937393.
+In a fresh Amp orb run `.agents/setup`, then use a new login shell for
+`.agents/check` (native JTTY, shared-core and app JVM tests). Use
+`.agents/check --host-only` for SDK-free native and tooling checks.
+`assembleDebug` builds without a connected device; `installDebug` requires one.
+See [AGENTS.md](AGENTS.md) for setup, commands and internal-testing safeguards.
 
 ---
 
