@@ -11,6 +11,8 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 
+import radio.core.cat.CatLiveness;
+
 /**
  * Covers {@link IcomRig#runReadFreqTick()} — the tick body of the dedicated
  * frequency-poll timer added in the follow-up to issue #753.

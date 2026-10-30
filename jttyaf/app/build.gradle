@@ -28,6 +28,8 @@ static def getCurrentTime() {
 android {
 
     compileSdk 36
+    // Match CI and the fresh-orb bootstrap instead of AGP's changing default.
+    ndkVersion '25.1.8937393'
 
     defaultConfig {
         applicationId "radio.ks3ckc.jttyaf"
@@ -200,6 +202,8 @@ sentry {
 }
 
 dependencies {
+
+    implementation project(':ham-radio-core')
 
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.12.0'

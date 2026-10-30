@@ -119,6 +119,7 @@ jobs:
           filters: |
             android:
               - 'jttyaf/**'
+              - 'ham-radio-core/**'
               - '.github/workflows/android.yml'
               - '.github/scripts/release_notes.py'
               - '.github/scripts/test_release_notes.py'
@@ -199,7 +200,10 @@ jobs:
 
       - name: Run unit tests
         working-directory: jttyaf
-        run: ./gradlew testDebugUnitTest --stacktrace
+        run: >-
+          ./gradlew :ham-radio-core:test testDebugUnitTest --stacktrace
+          --no-daemon --max-workers=1 -Pkotlin.compiler.execution.strategy=in-process
+          '-Dorg.gradle.jvmargs=-Xmx1536m -Dfile.encoding=UTF-8'
 
       - name: Generate coverage report
         working-directory: jttyaf
@@ -217,7 +221,7 @@ jobs:
           flags: android
 
       - name: Upload test reports on failure
-        if: steps.codecov.outcome == 'failure'
+        if: failure() || steps.codecov.outcome == 'failure'
         uses: actions/upload-artifact@v7
         with:
           name: unit-test-reports
@@ -225,6 +229,8 @@ jobs:
             jttyaf/app/build/reports/tests/
             jttyaf/app/build/test-results/
             jttyaf/app/build/reports/jacoco/
+            ham-radio-core/build/reports/tests/
+            ham-radio-core/build/test-results/
 
   instrumented:
     name: Instrumented tests (emulator)
@@ -514,12 +520,12 @@ jobs:
 
           ALL=$(git diff --name-only "$RANGE")
           # Only files that end up in the APK count: jttyaf/ (which includes the
-          # shared native core under jttyaf/app/src/main/cpp). ios/, desktop/,
-          # docs and CI don't — a promotion touching none of jttyaf/ builds but
-          # cuts no release.
-          ANDROID_FILES=$(printf '%s\n' "$ALL" | grep -E '^jttyaf/' || true)
+          # shared native core under jttyaf/app/src/main/cpp) and ham-radio-core/.
+          # Docs and CI don't — a promotion touching neither source tree builds
+          # but cuts no release. This does not change release authorization.
+          ANDROID_FILES=$(printf '%s\n' "$ALL" | grep -E '^(jttyaf|ham-radio-core)/' || true)
           if [[ -z "$ANDROID_FILES" ]]; then
-            echo "::notice::Nothing under jttyaf/ changed since ${PREV_TAG:-the baseline} — building only, not cutting a release."
+            echo "::notice::Nothing under jttyaf/ or ham-radio-core/ changed since ${PREV_TAG:-the baseline} — building only, not cutting a release."
             android_changed=false
           else
             android_changed=true
@@ -548,7 +554,7 @@ jobs:
             PRS+="- ${num_branch}${title:+: $title}"$'\n'
           done < <(git rev-list --merges "$RANGE")
           COUNT=$LOG_TOTAL
-          STAT=$(git diff --shortstat "$RANGE" -- jttyaf/ | sed 's/^ *//')
+          STAT=$(git diff --shortstat "$RANGE" -- jttyaf/ ham-radio-core/ | sed 's/^ *//')
           TOTAL=$(printf '%s\n' "$ALL" | grep -c . || true)
           ANDROID=$(printf '%s\n' "$ANDROID_FILES" | grep -c . || true)
           AREAS=$(set +o pipefail; printf '%s\n' "$ALL" \
@@ -567,7 +573,7 @@ jobs:
             echo "${PRS:-(no pull-request merges in range)}"
             echo "PRS_EOF"
             echo "size<<SIZE_EOF"
-            echo "$COUNT commits; ${STAT:-no file changes under jttyaf/}; $ANDROID of $TOTAL changed files are in the Android app (jttyaf/)"
+            echo "$COUNT commits; ${STAT:-no file changes under jttyaf/ or ham-radio-core/}; $ANDROID of $TOTAL changed files are in the Android app (jttyaf/ and ham-radio-core/)"
             echo ""
             echo "Changed files by area:"
             echo "$AREAS"

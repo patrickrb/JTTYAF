@@ -9,3 +9,6 @@ hamlib-4.7.2/
 # Python bytecode (.github/scripts unit tests)
 __pycache__/
 *.pyc
+
+# Orb-generated portal metadata and review artifacts
+.amp/
