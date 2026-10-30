@@ -73,7 +73,7 @@ import com.k1af.ft8af.log.WrlApi;
 import com.k1af.ft8af.rigs.BaseRig;
 import com.k1af.ft8af.rigs.BaseRigOperation;
 import com.k1af.ft8af.rigs.CatConnectionState;
-import com.k1af.ft8af.rigs.CatLiveness;
+import radio.core.cat.CatLiveness;
 import com.k1af.ft8af.rigs.CatLivenessTracker;
 import com.k1af.ft8af.rigs.CivAddressConfig;
 import com.k1af.ft8af.rigs.DiscoveryTX500Rig;

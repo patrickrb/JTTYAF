@@ -25,3 +25,19 @@ jobs:
 
       - name: Check AGENTS.md layout and references
         run: bash .github/scripts/check-agents-md.sh
+
+      - name: Check orb scripts and executable entry points
+        run: |
+          bash -n .agents/setup .agents/check
+          shellcheck .agents/setup .agents/check
+          test -x .agents/setup
+          test -x .agents/check
+          test -x jttyaf/gradlew
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Test grid/state generator
+        run: node --test jttyaf/scripts/*.test.mjs

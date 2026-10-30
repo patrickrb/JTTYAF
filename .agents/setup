@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+# Non-interactive Debian 12 / Linux x86_64 bootstrap for fresh Amp orbs.
+# Shell variables in generated profile snippets must expand in the future shell.
+# shellcheck disable=SC2016
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$root"
+SECONDS=0
+[[ "$(uname -sm)" == 'Linux x86_64' ]] || {
+    echo 'This bootstrap requires Linux x86_64; see AGENTS.md for manual setup.' >&2
+    exit 1
+}
+
+echo '== Checking system build prerequisites =='
+packages=(openjdk-17-jdk-headless clang build-essential curl ca-certificates unzip zip python3 shellcheck)
+missing=()
+for package in "${packages[@]}"; do
+    if [[ "$(dpkg-query -W -f='${Status}' "$package" 2>/dev/null || true)" != 'install ok installed' ]]; then
+        missing+=("$package")
+    fi
+done
+if ((${#missing[@]})); then
+    sudo apt-get update -qq -o DPkg::Lock::Timeout=120
+    sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        -o DPkg::Lock::Timeout=120 "${missing[@]}"
+fi
+command -v node >/dev/null || { echo 'Node.js 20+ is required (preinstalled in Amp orbs).' >&2; exit 1; }
+
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+export ANDROID_HOME="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/.local/share/android-sdk}}"
+export ANDROID_SDK_ROOT="$ANDROID_HOME"
+export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/25.1.8937393"
+export PATH="$JAVA_HOME/bin:$ANDROID_HOME/cmdline-tools/19.0/bin:$ANDROID_HOME/platform-tools:$PATH"
+
+echo "== Installing Android tools (${SECONDS}s elapsed) =="
+if [[ ! -x "$ANDROID_HOME/cmdline-tools/19.0/bin/sdkmanager" ]]; then
+    tmp="$(mktemp -d)"
+    trap 'rm -rf "$tmp"' EXIT
+    curl -fL --retry 3 --connect-timeout 30 \
+        https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip \
+        -o "$tmp/tools.zip"
+    echo "7ec965280a073311c339e571cd5de778b9975026cfcbe79f2b1cdcb1e15317ee  $tmp/tools.zip" | sha256sum -c -
+    unzip -q "$tmp/tools.zip" -d "$tmp/tools"
+    mkdir -p "$ANDROID_HOME/cmdline-tools"
+    mv "$tmp/tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/19.0"
+fi
+sdkmanager="$ANDROID_HOME/cmdline-tools/19.0/bin/sdkmanager"
+# Avoid `yes | sdkmanager || true`: that can hide an actual SDK failure under
+# pipefail. A finite answer file preserves sdkmanager's own exit status.
+answers="$(mktemp)"
+trap 'rm -f "$answers"; if [[ -n "${tmp:-}" ]]; then rm -rf "$tmp"; fi' EXIT
+printf 'y\n%.0s' {1..100} > "$answers"
+"$sdkmanager" --sdk_root="$ANDROID_HOME" --licenses < "$answers" > /dev/null
+"$sdkmanager" --sdk_root="$ANDROID_HOME" --install \
+    'platform-tools' 'platforms;android-36' 'build-tools;35.0.0' \
+    'ndk;25.1.8937393' 'cmake;3.22.1' < "$answers"
+
+echo "== Persisting environment for new login shells (${SECONDS}s elapsed) =="
+mkdir -p "$HOME/.config/jttyaf"
+env_file="$HOME/.config/jttyaf/environment.sh"
+{
+    printf 'export JAVA_HOME=%q\n' "$JAVA_HOME"
+    printf 'export ANDROID_HOME=%q\n' "$ANDROID_HOME"
+    printf 'export ANDROID_SDK_ROOT=%q\n' "$ANDROID_SDK_ROOT"
+    printf 'export ANDROID_NDK_HOME=%q\n' "$ANDROID_NDK_HOME"
+    printf 'export PATH="$JAVA_HOME/bin:$ANDROID_HOME/cmdline-tools/19.0/bin:$ANDROID_HOME/platform-tools:$PATH"\n'
+} > "$env_file"
+marker='# JTTYAF orb toolchain'
+if ! grep -Fqx "$marker" "$HOME/.bash_profile" 2>/dev/null; then
+    {
+        printf '\n%s\n' "$marker"
+        printf 'case "$PWD/" in %q/*) source %q ;; esac\n' "$root" "$env_file"
+    } >> "$HOME/.bash_profile"
+fi
+
+echo "== Warming Gradle dependency cache (${SECONDS}s elapsed) =="
+./jttyaf/gradlew -p jttyaf --no-daemon --max-workers=1 \
+    -Pkotlin.compiler.execution.strategy=in-process \
+    '-Dorg.gradle.jvmargs=-Xmx1536m -Dfile.encoding=UTF-8' \
+    :app:dependencies --configuration debugUnitTestRuntimeClasspath
+echo "== Setup finished in ${SECONDS}s; run .agents/check in a new login shell =="
