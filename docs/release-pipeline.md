@@ -21,7 +21,10 @@ feature/* ──PR──▶ dev ──PR──▶ staging ──PR──▶ main
   is published. Dev builds **never** reach the Releases page.
 - **dev → staging** — bundle up many dev PRs and promote them together. Merging
   this PR (a push to `staging`) cuts a **dev / prerelease** build of every
-  platform: prerelease GitHub Releases + Play **internal** track for Android.
+  platform: prerelease GitHub Releases + a Play **internal draft** for Android,
+  matching Sorrel's Play Beta workflow. Its APK version and Console release name
+  are plain `x.y.z`. Roll out the draft and later promote to closed testing and
+  production manually in Play Console; this workflow does not do those promotions.
 - **staging → main** — promote the validated staging build. Merging this PR (a
   push to `main`) cuts the **production** build: full GitHub Releases with the
   auto-bumped `android-v<x.y.z>` / `desktop-v<x.y.z>` tags. **A merge to `main`
@@ -75,20 +78,31 @@ Per-platform prefixes keep the Releases page unambiguous:
 Ported from Sorrel's `play-beta.yml`. On a push to `staging` the Android
 `build` job:
 
-1. Takes the latest `android-v*` tag as the baseline and collects everything
+1. Takes the latest reachable internal candidate as the staging baseline (its
+   SemVer is stored in the release body), or the latest `android-v*` tag when
+   there is no candidate, and collects everything
    from there to `HEAD`: merged PRs (number, branch, title), the commit log,
    and size signals (commit count, `jttyaf/` diff stat, changed files by area).
-2. If nothing under `jttyaf/` changed (an iOS- or desktop-only promotion) it
-   builds but **cuts no release** — no empty versions.
+2. If neither `jttyaf/`, `ham-radio-core/` nor the staging publishing/versioning
+   workflow/scripts changed, it builds but **cuts no release**. Docs-only
+   promotions do not create empty versions.
 3. Otherwise asks Claude (`claude-opus-5`, structured output) for the semver
    bump — `major` / `minor` / `patch`, judged from both content and size, with
    changes outside `jttyaf/` not counting — and for ≤400-character Play release
    notes aimed at ham operators.
-4. Builds `versionName = <x.y.z>-dev.<run#>`, tags `android-dev.<run#>`, and
+4. Builds `versionName = <x.y.z>`, tags `android-dev.<run#>`, and
    publishes the notes to the GitHub prerelease body **and** the Play internal
-   track's "Release notes" (`whatsNewDirectory`). The prerelease body also
+   **draft**'s "Release notes" (`whatsNewDirectory`). The Console release name
+   is the same SemVer. The prerelease body also
    carries hidden markers (`<!-- jttyaf-version: x.y.z -->` and
    `<!-- jttyaf-notes-start/end -->`).
+5. Uses the existing authorized Play account to read back **only internal**
+   through an uncommitted edit, then abandons that read edit. The exact draft
+   name, versionCode and English release notes must match. Upload or read-back
+   failures fail staging's Android gate; a GitHub Release alone is not a Play
+   delivery verdict. The credential-free `play-internal-readback` Actions artifact
+   preserves the actual Google track response. A verified draft is not a claim
+   of tester rollout, review approval, enrollment or propagation.
 
 On the later push to `main` the job looks for the newest `android-dev.*` tag
 that is an ancestor of `HEAD` and not already shipped, reads the version and
@@ -124,7 +138,7 @@ Either one may appear alone. A pinned version skips the AI bump step; pinned
 notes replace the AI's what's-new. The PR is found from the merge commit
 (`commits/<sha>/pulls`), so merge, squash and rebase merges all work. The rules
 are enforced by `release_notes.py pin` (unit-tested): the version must be a
-plain `x.y.z` **above the previous production version**, and the notes markers
+plain `x.y.z` **above the previous release version**, and the notes markers
 must not be empty — a bad pin fails the run with an `::error::` rather than
 silently falling back. On `main` a promoted staging candidate still takes
 precedence, so production ships exactly what the internal testers ran.
