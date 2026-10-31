@@ -47,6 +47,7 @@ Outcomes (`found=...` is appended to --github-output):
                genuine "release not found".
 """
 import argparse
+import json
 import os
 import re
 import sys
@@ -207,6 +208,24 @@ def parse_semver(text):
     return tuple(int(p) for p in text.split("."))
 
 
+def validate_internal_release(track, version, code, notes):
+    """Require Google's track response to contain this exact draft and notes."""
+    if track.get("track") != "internal":
+        raise ValueError("Google returned a different track, not internal")
+    matches = [r for r in track.get("releases", []) if r.get("name") == version]
+    if len(matches) != 1:
+        raise ValueError("Expected one internal release named %s" % version)
+    release = matches[0]
+    if release.get("status") != "draft":
+        raise ValueError("Internal release %s is not a draft" % version)
+    if release.get("versionCodes") != [str(code)]:
+        raise ValueError("Internal draft does not contain exactly versionCode %s" % code)
+    english = [n.get("text", "").strip() for n in release.get("releaseNotes", [])
+               if n.get("language") == "en-US"]
+    if not notes.strip() or english != [notes.strip()]:
+        raise ValueError("Internal draft's English release notes do not match the build")
+
+
 class PinOutcome:
     def __init__(self, found=False, version="", notes="", error=None, message=""):
         self.found = found      # a version or notes (or both) were pinned
@@ -302,7 +321,55 @@ def build_arg_parser():
     e.add_argument("--notes", required=True, help="notes file; created or rewritten when blank")
     e.add_argument("--pr-list-env", default="PR_LIST",
                    help="env var holding the AI step's PR list (default PR_LIST)")
+
+    v = sub.add_parser("verify-internal", help="read back the committed internal draft from Play")
+    v.add_argument("--version", required=True)
+    v.add_argument("--code", type=int, required=True)
+    v.add_argument("--notes", required=True)
+    v.add_argument("--report", required=True, help="credential-free Google track response and verdict")
     return ap
+
+
+def run_verify_internal(args):
+    # Reuse the existing authorized Play session/cleanup, not a second auth path.
+    from publish_listings import API, DEFAULT_PACKAGE, abandon_edit, play_session
+
+    try:
+        session = play_session()
+        url = "%s/applications/%s/edits" % (API, DEFAULT_PACKAGE)
+        response = session.post(url, timeout=30)
+        response.raise_for_status()
+        edit_id = response.json()["id"]
+        try:
+            response = session.get("%s/%s/tracks/internal" % (url, edit_id), timeout=30)
+            response.raise_for_status()
+            track = response.json()
+        finally:
+            abandon_edit(session, DEFAULT_PACKAGE, edit_id)
+        with open(args.notes, encoding="utf-8") as f:
+            notes = f.read()
+        error = None
+        try:
+            validate_internal_release(track, args.version, args.code, notes)
+        except ValueError as exc:
+            error = str(exc)
+        with open(args.report, "w", encoding="utf-8") as f:
+            json.dump({"packageName": DEFAULT_PACKAGE, "track": track,
+                       "expectedVersion": args.version, "expectedVersionCode": args.code,
+                       "verified": error is None, "error": error}, f, indent=2)
+            f.write("\n")
+        if error:
+            print("::error::" + error)
+            return 1
+        print("Verified Play internal draft %s (versionCode %s) and release notes for %s"
+              % (args.version, args.code, DEFAULT_PACKAGE))
+        return 0
+    except Exception as exc:
+        # Never print the credentials or auth library's request/token details.
+        response = getattr(exc, "response", None)
+        print("::error::Cannot verify Play internal draft: %s%s" % (
+            type(exc).__name__, " HTTP %s" % response.status_code if response is not None else ""))
+        return 1
 
 
 def run_ensure_notes(args):
@@ -350,6 +417,8 @@ def run_pin(args):
 
 def main(argv=None):
     args = build_arg_parser().parse_args(argv)
+    if args.command == "verify-internal":
+        return run_verify_internal(args)
     if args.command == "ensure-notes":
         return run_ensure_notes(args)
     if args.command == "pin":
