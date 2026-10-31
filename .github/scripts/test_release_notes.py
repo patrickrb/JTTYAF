@@ -6,6 +6,7 @@ is pinned here: existing / missing release, lookup failure, dispatch versus
 tag push, and the marker structure.
 """
 import contextlib
+import copy
 import io
 import os
 import shutil
@@ -469,6 +470,37 @@ class PinMainTest(unittest.TestCase):
         self.assertIn("::error::", out)
         self.assertEqual(gh, "")
         self.assertFalse(os.path.exists(self.notes))
+
+
+class InternalReleaseTest(unittest.TestCase):
+    def test_exact_draft_is_verified_alongside_an_older_release(self):
+        track = {"track": "internal", "releases": [
+            {"name": "1.0.1", "status": "completed", "versionCodes": ["1029"]},
+            {"name": "1.2.3", "status": "draft", "versionCodes": ["1047"],
+             "releaseNotes": [{"language": "de-DE", "text": "Andere Notizen"},
+                              {"language": "en-US", "text": "Better CAT recovery.\n"}]},
+        ]}
+        rn.validate_internal_release(track, "1.2.3", 1047, "Better CAT recovery.")
+
+    def test_stale_or_incorrect_draft_is_rejected(self):
+        release = {"name": "1.2.3", "status": "draft", "versionCodes": ["1047"],
+                   "releaseNotes": [{"language": "en-US", "text": "Better CAT recovery."}]}
+        for field, wrong in (("name", "1.2.2"), ("status", "completed"),
+                             ("versionCodes", ["1046"]),
+                             ("versionCodes", ["1047", "1046"]),
+                             ("releaseNotes", [{"language": "en-US", "text": "Old notes"}]),
+                             ("releaseNotes", [{"language": "de-DE", "text": "Better CAT recovery."}])):
+            with self.subTest(field=field, wrong=wrong):
+                bad = copy.deepcopy(release)
+                bad[field] = wrong
+                with self.assertRaises(ValueError):
+                    rn.validate_internal_release({"track": "internal", "releases": [bad]},
+                                                 "1.2.3", 1047, "Better CAT recovery.")
+
+    def test_missing_or_wrong_track_is_not_delivery(self):
+        for track in ({"track": "internal"}, {"track": "production", "releases": []}, {}):
+            with self.subTest(track=track), self.assertRaises(ValueError):
+                rn.validate_internal_release(track, "1.2.3", 1047, "Better CAT recovery.")
 
 
 if __name__ == "__main__":
