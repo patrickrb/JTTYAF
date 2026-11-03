@@ -8,10 +8,12 @@ tag push, and the marker structure.
 import contextlib
 import copy
 import io
+import json
 import os
 import shutil
 import tempfile
 import unittest
+from unittest import mock
 
 import release_notes as rn
 
@@ -470,6 +472,80 @@ class PinMainTest(unittest.TestCase):
         self.assertIn("::error::", out)
         self.assertEqual(gh, "")
         self.assertFalse(os.path.exists(self.notes))
+
+
+class InternalInspectionTest(unittest.TestCase):
+    def test_read_preserves_draft_and_completed_releases_without_any_commit(self):
+        import publish_listings as pl
+        from test_publish_listings import FakeResponse, FakeSession
+
+        track = {"track": "internal", "releases": [
+            {"name": "1.0.2", "status": "draft", "versionCodes": ["1033"]},
+            {"name": "android-dev.29", "status": "completed", "versionCodes": ["1029"]},
+        ]}
+        for status in ("draft", "completed"):
+            with self.subTest(status=status), tempfile.TemporaryDirectory() as tmp:
+                track["releases"][0]["status"] = status
+                session = FakeSession()
+                base = pl.API + "/applications/radio.ks3ckc.jttyaf/edits"
+
+                def read(url, timeout=None):
+                    self.assertEqual(url, base + "/edit-1/tracks/internal")
+                    return FakeResponse(track)
+
+                def create(url, timeout=None):
+                    self.assertEqual(url, base)  # A commit/upload is never permitted.
+                    return FakeResponse({"id": "edit-1"})
+
+                session.get = read
+                session.post = create
+                path = os.path.join(tmp, "read.json")
+                with mock.patch.object(pl, "play_session", return_value=session):
+                    rc = rn.main(["inspect-internal", "--report", path])
+                self.assertEqual(rc, 0)
+                with open(path) as f:
+                    report = json.load(f)
+                self.assertEqual(report["packageName"], "radio.ks3ckc.jttyaf")
+                self.assertEqual(report["track"], track)
+                self.assertIn("readAt", report)
+                self.assertNotIn("verified", report)  # Inspection is not draft verification.
+                self.assertEqual(session.deletes, [base + "/edit-1"])
+                self.assertEqual(session.patched, {})
+                self.assertEqual(session.puts, {})
+
+    def test_unconfirmed_cleanup_fails_but_keeps_the_actual_track_response(self):
+        import publish_listings as pl
+        from test_publish_listings import FakeResponse, FakeSession
+
+        track = {"track": "internal", "releases": []}
+        for options in ({"delete_status": 403}, {"delete_status": 500},
+                        {"delete_exc": OSError("timeout")}):
+            with self.subTest(options=options), tempfile.TemporaryDirectory() as tmp:
+                session = FakeSession(**options)
+                session.get = lambda *a, **kw: FakeResponse(track)
+                path = os.path.join(tmp, "read.json")
+                with mock.patch.object(pl, "play_session", return_value=session):
+                    self.assertEqual(rn.main(["inspect-internal", "--report", path]), 1)
+                with open(path) as f:
+                    report = json.load(f)
+                self.assertEqual(report["track"], track)
+                self.assertIn("abandonment was not confirmed", report["error"])
+                self.assertEqual(session.commits, [])
+
+    def test_bad_track_or_read_failure_is_not_success_and_edit_is_abandoned(self):
+        import publish_listings as pl
+        from test_publish_listings import FakeResponse, FakeSession
+
+        for response in (FakeResponse({"track": "production"}), FakeResponse({}, 403)):
+            with self.subTest(response=response), tempfile.TemporaryDirectory() as tmp:
+                session = FakeSession()
+                session.get = lambda *a, **kw: response
+                path = os.path.join(tmp, "read.json")
+                with mock.patch.object(pl, "play_session", return_value=session):
+                    rc = rn.main(["inspect-internal", "--report", path])
+                self.assertEqual(rc, 1)
+                self.assertEqual(len(session.deletes), 1)
+                self.assertEqual(session.commits, [])
 
 
 class InternalReleaseTest(unittest.TestCase):

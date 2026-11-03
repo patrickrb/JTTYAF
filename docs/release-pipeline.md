@@ -104,6 +104,24 @@ Ported from Sorrel's `play-beta.yml`. On a push to `staging` the Android
    preserves the actual Google track response. A verified draft is not a claim
    of tester rollout, review approval, enrollment or propagation.
 
+To inspect the **current** internal state without another build or upload, run
+`Android CI & Release` on an approved branch with `inspect_internal=true`.
+This mode skips the build/release jobs, takes the existing `play-publish` lock,
+reads only `radio.ks3ckc.jttyaf`'s internal track using the existing authorized
+Play account, and abandons its temporary edit without committing. The
+`play-internal-current` artifact records Google's releases/statuses and the UTC
+read time. It does not require a draft: a later manual rollout may have changed
+the status. It never rolls out or promotes anything; the owner's manual Console
+rollout hold still applies. Leave the input false for normal workflow behavior.
+
+Before dispatch, obtain independent review of the exact branch revision and
+coordinate a publishing pause: there must be **no active or queued Android or
+Play-listings publisher**. GitHub concurrency protects the active run but a new
+member can replace a pending run even with `cancel-in-progress: false`. Do not
+enqueue inspection behind publishing. Inspection does not change that existing
+queue policy, credential grants or protection rules. It fails if temporary-edit
+cleanup cannot be confirmed and retains any successfully read track response.
+
 On the later push to `main` the job looks for the newest `android-dev.*` tag
 that is an ancestor of `HEAD` and not already shipped, reads the version and
 notes back out of those markers, and releases `android-v<x.y.z>` with the same

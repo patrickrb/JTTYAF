@@ -322,6 +322,9 @@ def build_arg_parser():
     e.add_argument("--pr-list-env", default="PR_LIST",
                    help="env var holding the AI step's PR list (default PR_LIST)")
 
+    i = sub.add_parser("inspect-internal", help="read current internal releases without publishing")
+    i.add_argument("--report", required=True, help="credential-free current Google track response")
+
     v = sub.add_parser("verify-internal", help="read back the committed internal draft from Play")
     v.add_argument("--version", required=True)
     v.add_argument("--code", type=int, required=True)
@@ -345,22 +348,37 @@ def run_verify_internal(args):
             response.raise_for_status()
             track = response.json()
         finally:
-            abandon_edit(session, DEFAULT_PACKAGE, edit_id)
-        with open(args.notes, encoding="utf-8") as f:
-            notes = f.read()
+            abandoned = abandon_edit(session, DEFAULT_PACKAGE, edit_id)
+        from datetime import datetime, timezone
+
+        report = {"packageName": DEFAULT_PACKAGE, "track": track,
+                  "readAt": datetime.now(timezone.utc).isoformat()}
         error = None
         try:
-            validate_internal_release(track, args.version, args.code, notes)
+            if track.get("track") != "internal":
+                raise ValueError("Google returned a different track, not internal")
+            if args.command == "inspect-internal" and not abandoned:
+                raise ValueError("Internal track read, but temporary edit abandonment was not confirmed")
+            if args.command == "verify-internal":
+                with open(args.notes, encoding="utf-8") as f:
+                    notes = f.read()
+                validate_internal_release(track, args.version, args.code, notes)
         except ValueError as exc:
             error = str(exc)
+        if args.command == "verify-internal":
+            report.update(expectedVersion=args.version, expectedVersionCode=args.code,
+                          verified=error is None)
+        report["error"] = error
         with open(args.report, "w", encoding="utf-8") as f:
-            json.dump({"packageName": DEFAULT_PACKAGE, "track": track,
-                       "expectedVersion": args.version, "expectedVersionCode": args.code,
-                       "verified": error is None, "error": error}, f, indent=2)
+            json.dump(report, f, indent=2)
             f.write("\n")
         if error:
             print("::error::" + error)
             return 1
+        if args.command == "inspect-internal":
+            print("Read current internal track for %s; no release changed. "
+                  "A draft is not tester rollout or installation availability." % DEFAULT_PACKAGE)
+            return 0
         print("Verified Play internal draft %s (versionCode %s) and release notes for %s"
               % (args.version, args.code, DEFAULT_PACKAGE))
         return 0
@@ -417,7 +435,7 @@ def run_pin(args):
 
 def main(argv=None):
     args = build_arg_parser().parse_args(argv)
-    if args.command == "verify-internal":
+    if args.command in ("verify-internal", "inspect-internal"):
         return run_verify_internal(args)
     if args.command == "ensure-notes":
         return run_ensure_notes(args)
