@@ -333,6 +333,36 @@ def build_arg_parser():
     return ap
 
 
+def run_inspect_internal(args):
+    """GET committed release summaries only: no temporary edit or mutation."""
+    from datetime import datetime, timezone
+    from publish_listings import API, DEFAULT_PACKAGE, play_session
+
+    url = "%s/applications/%s/tracks/internal/releases" % (API, DEFAULT_PACKAGE)
+    report = {"packageName": DEFAULT_PACKAGE, "track": "internal", "requestUrl": url,
+              "readAt": datetime.now(timezone.utc).isoformat(), "readSucceeded": False,
+              "testerDeviceAvailability": "not verified",
+              "note": "At most 20 non-obsolete releases. Published may include partial or halted rollout."}
+    try:
+        response = play_session().get(url, timeout=30)
+        response.raise_for_status()
+        payload = response.json()
+        releases = payload.get("releases", [])
+        if any(release.get("track") != "internal" for release in releases):
+            raise ValueError("non-internal response")
+        report["response"] = payload
+        report["readSucceeded"] = True
+    except Exception as exc:
+        # No arbitrary exception details, HTTP bodies, tokens or credentials.
+        report["errorType"] = type(exc).__name__
+    with open(args.report, "w", encoding="utf-8") as f:
+        json.dump(report, f, indent=2)
+        f.write("\n")
+    print("Current internal read succeeded=%s; no edit or rollout; device availability not verified."
+          % report["readSucceeded"])
+    return 0 if report["readSucceeded"] else 1
+
+
 def run_verify_internal(args):
     # Reuse the existing authorized Play session/cleanup, not a second auth path.
     from publish_listings import API, DEFAULT_PACKAGE, abandon_edit, play_session
@@ -348,37 +378,22 @@ def run_verify_internal(args):
             response.raise_for_status()
             track = response.json()
         finally:
-            abandoned = abandon_edit(session, DEFAULT_PACKAGE, edit_id)
-        from datetime import datetime, timezone
-
-        report = {"packageName": DEFAULT_PACKAGE, "track": track,
-                  "readAt": datetime.now(timezone.utc).isoformat()}
+            abandon_edit(session, DEFAULT_PACKAGE, edit_id)
+        with open(args.notes, encoding="utf-8") as f:
+            notes = f.read()
         error = None
         try:
-            if track.get("track") != "internal":
-                raise ValueError("Google returned a different track, not internal")
-            if args.command == "inspect-internal" and not abandoned:
-                raise ValueError("Internal track read, but temporary edit abandonment was not confirmed")
-            if args.command == "verify-internal":
-                with open(args.notes, encoding="utf-8") as f:
-                    notes = f.read()
-                validate_internal_release(track, args.version, args.code, notes)
+            validate_internal_release(track, args.version, args.code, notes)
         except ValueError as exc:
             error = str(exc)
-        if args.command == "verify-internal":
-            report.update(expectedVersion=args.version, expectedVersionCode=args.code,
-                          verified=error is None)
-        report["error"] = error
         with open(args.report, "w", encoding="utf-8") as f:
-            json.dump(report, f, indent=2)
+            json.dump({"packageName": DEFAULT_PACKAGE, "track": track,
+                       "expectedVersion": args.version, "expectedVersionCode": args.code,
+                       "verified": error is None, "error": error}, f, indent=2)
             f.write("\n")
         if error:
             print("::error::" + error)
             return 1
-        if args.command == "inspect-internal":
-            print("Read current internal track for %s; no release changed. "
-                  "A draft is not tester rollout or installation availability." % DEFAULT_PACKAGE)
-            return 0
         print("Verified Play internal draft %s (versionCode %s) and release notes for %s"
               % (args.version, args.code, DEFAULT_PACKAGE))
         return 0
@@ -435,7 +450,9 @@ def run_pin(args):
 
 def main(argv=None):
     args = build_arg_parser().parse_args(argv)
-    if args.command in ("verify-internal", "inspect-internal"):
+    if args.command == "inspect-internal":
+        return run_inspect_internal(args)
+    if args.command == "verify-internal":
         return run_verify_internal(args)
     if args.command == "ensure-notes":
         return run_ensure_notes(args)

@@ -105,22 +105,21 @@ Ported from Sorrel's `play-beta.yml`. On a push to `staging` the Android
    of tester rollout, review approval, enrollment or propagation.
 
 To inspect the **current** internal state without another build or upload, run
-`Android CI & Release` on an approved branch with `inspect_internal=true`.
-This mode skips the build/release jobs, takes the existing `play-publish` lock,
-reads only `radio.ks3ckc.jttyaf`'s internal track using the existing authorized
-Play account, and abandons its temporary edit without committing. The
-`play-internal-current` artifact records Google's releases/statuses and the UTC
-read time. It does not require a draft: a later manual rollout may have changed
-the status. It never rolls out or promotes anything; the owner's manual Console
-rollout hold still applies. Leave the input false for normal workflow behavior.
+`Android CI & Release` on the selected branch with `inspect_internal=true`.
+This mode skips all build/release jobs and GETs only
+`applications/radio.ks3ckc.jttyaf/tracks/internal/releases` using the existing
+authorized Play account. No edit is created or committed, so it does not join
+the publishing queue or require a publishing pause. Normal production queue
+selection, credential grants and merge/review protections remain unchanged.
 
-Before dispatch, obtain independent review of the exact branch revision and
-coordinate a publishing pause: there must be **no active or queued Android or
-Play-listings publisher**. GitHub concurrency protects the active run but a new
-member can replace a pending run even with `cancel-in-progress: false`. Do not
-enqueue inspection behind publishing. Inspection does not change that existing
-queue policy, credential grants or protection rules. It fails if temporary-edit
-cleanup cannot be confirmed and retains any successfully read track response.
+The `play-internal-current` artifact records Google's release summaries and UTC
+read time. The API returns at most 20 non-obsolete releases; absence is not proof
+of historical nonexistence. It exposes lifecycle, releaseName and active version
+codes, not versionName or exact notes. PUBLISHED can include partial or halted
+rollout; a draft is not tester availability. The check does not require a draft,
+since a manual Console action may have changed its lifecycle. It never rolls
+out or promotes anything; the owner's manual Console rollout hold still applies.
+Leave the input false for normal workflow behavior.
 
 On the later push to `main` the job looks for the newest `android-dev.*` tag
 that is an ancestor of `HEAD` and not already shipped, reads the version and
