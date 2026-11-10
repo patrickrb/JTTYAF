@@ -10,6 +10,8 @@ import copy
 import io
 import json
 import os
+from pathlib import Path
+import re
 import shutil
 import tempfile
 import unittest
@@ -567,6 +569,33 @@ class InternalReleaseTest(unittest.TestCase):
         for track in ({"track": "internal"}, {"track": "production", "releases": []}, {}):
             with self.subTest(track=track), self.assertRaises(ValueError):
                 rn.validate_internal_release(track, "1.2.3", 1047, "Better CAT recovery.")
+
+
+class ReleaseBillingPolicyTest(unittest.TestCase):
+    def test_paid_generation_is_only_first_internal_creation(self):
+        workflow = (Path(__file__).parents[1] / "workflows/android.yml").read_text()
+        condition = re.search(
+            r"id: ai\n(?: *#.*\n)* *if: >-\n((?:          .*\n)+)", workflow
+        ).group(1)
+        for key, name in (("steps.lane.outputs.lane", "lane"),
+                          ("github.run_attempt", "attempt"),
+                          ("steps.changes.outputs.android_changed", "changed"),
+                          ("steps.candidate.outputs.found", "candidate"),
+                          ("steps.pin.outputs.version", "pin")):
+            condition = condition.replace(key, name)
+        condition = " ".join(condition.split()).replace("&&", "and").replace("||", "or")
+        for lane in ("dev", "production", "tag", "none"):
+            for attempt in (1, 2, 5):
+                for changed in ("true", "false"):
+                    for candidate in ("true", "false"):
+                        for pin in ("", "1.2.3"):
+                            context = dict(lane=lane, attempt=attempt, changed=changed,
+                                           candidate=candidate, pin=pin)
+                            with self.subTest(**context):
+                                allowed = eval(condition, {"__builtins__": {}}, context)
+                                self.assertEqual(allowed, lane == "dev" and attempt == 1
+                                                 and changed == "true"
+                                                 and candidate == "false" and pin == "")
 
 
 if __name__ == "__main__":

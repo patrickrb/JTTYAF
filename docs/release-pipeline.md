@@ -125,8 +125,9 @@ On the later push to `main` the job looks for the newest `android-dev.*` tag
 that is an ancestor of `HEAD` and not already shipped, reads the version and
 notes back out of those markers, and releases `android-v<x.y.z>` with the same
 notes — so when that tag is later shipped to Play, production ships exactly what
-the internal testers ran. If no such candidate exists (or it pre-dates the markers) Claude
-decides on `main` instead. An `android-v<x.y.z>` that already exists is stepped
+the internal testers ran. If no such candidate exists (or it pre-dates the markers),
+use a deterministic patch bump and PR-title notes without calling Claude.
+An `android-v<x.y.z>` that already exists is stepped
 by a patch until free.
 
 `versionCode` is unchanged: still `GITHUB_RUN_NUMBER + 1000`.
@@ -137,6 +138,16 @@ and has a self-test (`--self-test`).
 **Secret:** `ANTHROPIC_API_KEY` (repository secret). Without it, or if the API
 call fails, the run annotates a warning, takes a **patch** bump, and uses the
 PR titles as the notes — a release is never blocked on the AI step.
+
+**Paid-call boundary:** at most one Anthropic request, only on attempt 1 of
+internal creation (`staging` push). No API retries or server-side fallback.
+Promotions and tag/manual shipping reuse the saved staging/release notes.
+Workflow reruns never call Anthropic again: an already-created internal
+candidate is the baseline, so an unchanged rerun is build-only and keeps its
+release; if creation failed before saving the release, use deterministic
+patch/PR-title notes instead. Pinned versions continue to skip generation.
+This policy does not authorize any production action; the all-five-app testing
+and subsequent explicit production approval hold remains in force.
 
 ### Pinning the version or the notes by hand
 

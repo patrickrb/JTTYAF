@@ -650,7 +650,8 @@ jobs:
         # internal testers ran rather than re-rolling Claude's decision. The
         # staging prerelease body carries both inside hidden HTML-comment markers
         # (see "Write release notes"). Falls through (found=false) for staging
-        # builds that predate the markers, so Claude decides on main instead.
+        # builds that predate the markers; the deterministic patch/PR-title
+        # fallback handles these without another paid API request.
         if: steps.lane.outputs.lane == 'production' && steps.changes.outputs.android_changed == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -667,13 +668,13 @@ jobs:
             fi
           done
           if [[ -z "$cand" ]]; then
-            echo "No unshipped android-dev.* build reachable from HEAD — Claude will version this release."
+            echo "No unshipped android-dev.* build reachable from HEAD — using deterministic fallback."
             echo "found=false" >> "$GITHUB_OUTPUT"; exit 0
           fi
           BODY=$(gh release view "$cand" --json body -q .body 2>/dev/null | tr -d '\r' || true)
           VERSION=$(sed -nE 's#.*<!-- jttyaf-version: ([0-9]+\.[0-9]+\.[0-9]+) -->.*#\1#p' <<< "$BODY" | head -n1)
           if [[ -z "$VERSION" ]]; then
-            echo "Candidate $cand has no version marker (pre-dates AI versioning) — Claude will version this release."
+            echo "Candidate $cand has no version marker — using deterministic fallback."
             echo "found=false" >> "$GITHUB_OUTPUT"; exit 0
           fi
           awk '/<!-- jttyaf-notes-start -->/{f=1; next} /<!-- jttyaf-notes-end -->/{f=0} f' <<< "$BODY" > notes.txt
@@ -720,8 +721,12 @@ jobs:
 
       - name: Generate release notes and semver bump with Claude
         id: ai
+        # One paid request at internal creation only. Workflow reruns never
+        # repeat it; existing candidates keep their notes, otherwise use the
+        # deterministic patch/PR-title fallback below. No API retries/failover.
         if: >-
-          (steps.lane.outputs.lane == 'production' || steps.lane.outputs.lane == 'dev')
+          steps.lane.outputs.lane == 'dev'
+          && github.run_attempt == 1
           && steps.changes.outputs.android_changed == 'true'
           && steps.candidate.outputs.found != 'true'
           && steps.pin.outputs.version == ''
@@ -791,14 +796,12 @@ jobs:
           jq -n --rawfile prompt prompt.txt --argjson schema "$SCHEMA" '{
             model: "claude-opus-5",
             max_tokens: 4096,
-            fallbacks: "default",
             output_config: {format: {type: "json_schema", schema: $schema}},
             messages: [{role: "user", content: $prompt}]
           }' > request.json
           if ! RESP=$(curl -sSf --max-time 300 https://api.anthropic.com/v1/messages \
               -H "x-api-key: $ANTHROPIC_API_KEY" \
               -H "anthropic-version: 2023-06-01" \
-              -H "anthropic-beta: server-side-fallback-2026-07-01" \
               -H "content-type: application/json" \
               -d @request.json); then
             fallback "the Claude API request failed"
@@ -830,8 +833,8 @@ jobs:
           CAND_VERSION: ${{ steps.candidate.outputs.version }}
           PIN_VERSION: ${{ steps.pin.outputs.version }}
           PIN_NOTES: ${{ steps.pin.outputs.notes }}
-          BUMP: ${{ steps.ai.outputs.bump }}
-          BUMP_SOURCE: ${{ steps.ai.outputs.source }}
+          BUMP: ${{ steps.ai.outputs.bump || 'patch' }}
+          BUMP_SOURCE: ${{ steps.ai.outputs.source || 'deterministic fallback (no API call)' }}
         run: |
           set -euo pipefail
           release_tag=""; version_name=""; should_release=false; is_prerelease=false; play_track=""; version_source=""
