@@ -722,6 +722,42 @@ class ReleaseRoutingTest(unittest.TestCase):
         for path in workflows.glob("*.yml"):
             self.assertNotRegex(path.read_text(), r"(?m)^  (workflow_run|workflow_call|repository_dispatch|release):")
 
+    def test_inspection_never_builds_publishes_or_takes_the_publisher_lock(self):
+        parts = re.split(r"^  ([\w-]+):\n", self.workflow.split("jobs:\n", 1)[1], flags=re.M)
+        jobs = dict(zip(parts[1::2], parts[2::2]))
+        conditions = {job: re.search(r"^    if: (.*)$", jobs[job], re.M).group(1)
+                      for job in ("inspect-internal", "detect", "build")}
+        concurrency = re.search(r"^  group: >-\n((?:    .*\n)+)", self.workflow, re.M).group(1)
+
+        def evaluate(expression, context):
+            expression = " ".join(expression.split()).removeprefix("${{").removesuffix("}}")
+            for key, value in context.items():
+                expression = expression.replace(key, repr(value))
+            expression = re.sub(r"!(?!=)", "not ", expression).replace("&&", "and").replace("||", "or")
+            return eval(expression, {"__builtins__": {}, "always": lambda: True,
+                                     "startsWith": lambda value, prefix: value.startswith(prefix),
+                                     "format": lambda pattern, value: pattern.format(value)})
+
+        for event in ("push", "pull_request", "workflow_dispatch"):
+            for ref in ("refs/heads/main", "refs/heads/staging", "refs/heads/dev", "refs/tags/android-v2.3.4"):
+                for inspect in (True, False):
+                    with self.subTest(event=event, ref=ref, inspect=inspect):
+                        context = {"github.event_name": event, "github.ref": ref,
+                                   "github.run_id": "61", "inputs.inspect_internal": inspect}
+                        read_only = event == "workflow_dispatch" and inspect
+                        self.assertEqual(evaluate(conditions["inspect-internal"], context), read_only)
+                        detected = evaluate(conditions["detect"], context)
+                        self.assertEqual(detected, not read_only)
+                        context.update({"needs.detect.outputs.run": "true" if detected else "",
+                                        "needs.test.result": "skipped" if read_only else "success"})
+                        self.assertEqual(evaluate(conditions["build"], context), not read_only)
+                        publisher = (event == "push" and ref != "refs/heads/dev"
+                                     or event == "workflow_dispatch" and not inspect
+                                     and ref == "refs/tags/android-v2.3.4")
+                        self.assertEqual(evaluate(concurrency, context), "play-publish" if publisher else "build-61")
+        self.assertIn("needs: [detect, test]", jobs["build"])
+        self.assertIn("release_notes.py inspect-internal", jobs["inspect-internal"])
+
     def test_discord_main_and_staging_are_internal_notifications(self):
         workflow = (Path(__file__).parents[1] / "workflows/discord-merge-notify.yml").read_text()
         script = textwrap.dedent(workflow.split("        run: |\n", 1)[1])
