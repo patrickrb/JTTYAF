@@ -128,9 +128,7 @@ only ever *executed* as a black-box oracle, never read.
 
 Release signing and Play upload require authorized credentials; local debug
 builds need none. Never commit keys, credentials, local.properties or build
-outputs. Read `.github/workflows/` before remote delivery: pushes to staging
-publish an internal candidate; main and android-v* tags enter production release
-lanes. Do not bypass those gates or run publishing workflows to validate a PR.
+outputs. Read `.github/workflows/` before remote delivery: staging/main pushes publish only internal prereleases and Play internal drafts; only deliberate android-v* tag pushes/manual tag runs enter production lanes. Do not bypass source/review gates or run publishing workflows to validate a PR.
 For this readiness/core rollout, production releases, promotions and rollouts
 are prohibited until the user tests **all five apps** and subsequently gives
 explicit production approval. Internal-test delivery is not that approval.
