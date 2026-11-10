@@ -12,8 +12,8 @@ name: Play store listings
 # text lands in the repo on the normal feature -> dev -> staging -> main flow
 # and sits there until someone decides the store should say it, then ships by a
 # manual run here (or by running .github/scripts/publish_listings.py locally --
-# see docs/store-listings.md). Merging to main touches Google Play in no way at
-# all: android.yml uploads no AAB there either.
+# see docs/store-listings.md). Branch pushes never publish listings;
+# android.yml separately uploads only internal drafts on staging/main pushes.
 #
 # Graphics (icon, feature graphic, screenshots) are NOT managed here — Play falls
 # back to the default language's graphics for locales that have none of their

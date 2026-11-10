@@ -1,52 +1,30 @@
 # Release pipeline
 
-Three platforms (Android, desktop, iOS) build and release **independently** —
-each has its own workflow, its own path filter, its own tag namespace, and its
-own required status-check gate. A change to one platform never rebuilds the
-others (except a change to the shared native C core under
-`jttyaf/app/src/main/cpp/**`, which all three depend on).
+JTTYAF is Android-only. The conversion on `dev`/`staging` deliberately removed
+desktop/iOS sources and workflows. Legacy `main` still has orphan desktop/iOS
+workflows until the normal reviewed promotion removes them; do not restore them.
+
+**Production hold:** no production releases, promotions or rollouts until the
+user tests all five apps and subsequently explicitly approves production.
+Preserving an explicit tag/manual production route is not permission to use it.
 
 ## Branch lifecycle
-
-```
-feature/* ──PR──▶ dev ──PR──▶ staging ──PR──▶ main
-                  │            │               │
-                  │            │               └─ PRODUCTION build → Releases only (no AAB to Play)
-                  │            │                  └─ manual run on the android-v* tag → Play production
-                  │            └───────────────── DEV (prerelease) build → Releases + Play internal
-                  └────────────────────────────── CI only, NO release
-```
 
 - **feature → dev** — every work item. CI runs (tests, build check) but nothing
   is published. Dev builds **never** reach the Releases page.
 - **dev → staging** — bundle up many dev PRs and promote them together. Merging
-  this PR (a push to `staging`) cuts a **dev / prerelease** build of every
-  platform: prerelease GitHub Releases + a Play **internal draft** for Android,
-  matching Sorrel's Play Beta workflow. Its APK version and Console release name
-  are plain `x.y.z`. Roll out the draft and later promote to closed testing and
-  production manually in Play Console; this workflow does not do those promotions.
+  this PR cuts `android-dev.<run#>` with `prerelease:true` and a Play **internal
+  draft**. APK version and Console release name are plain `x.y.z`. A draft is
+  not tester availability, and does not authorize another track or rollout.
 - **staging → main** — promote the validated staging build. Merging this PR (a
-  push to `main`) cuts the **production** build: full GitHub Releases with the
-  auto-bumped `android-v<x.y.z>` / `desktop-v<x.y.z>` tags. **A merge to `main`
-  reaches Google Play in no way at all** — no AAB to any track, and no store
-  listing text either. Everything Play-side is a deliberate, separate act. See
-  [Store listings](#store-listings) below.
-- **shipping a `main`-cut release to Play production is manual.** In
-  **Actions → Android CI & Release → Run workflow**, pick the `android-v<x.y.z>`
-  tag the `main` merge created as the ref and run it. That run takes the same
-  release lane an `android-v*` tag push takes and uploads the AAB to the Play
-  **production** track. It reuses the release notes already on that tag's
-  GitHub Release (read back through the hidden markers in its body) as Play's
-  what's-new — and refuses to run if they are missing — and leaves the release
-  body as the promotion wrote it. A merge to `main` on its own never puts a
-  build in front of users. (Pushing a brand-new `android-v*` tag by hand is
-  the other, older path: it also enters the tag lane and publishes to
-  production directly, with the version string as the what's-new.)
-
-  It has to be a manual run rather than a tag push: the `main` run creates the
-  `android-v<x.y.z>` ref itself (the GitHub Releases API creates the tag), so
-  `git push origin android-v<x.y.z>` is `Everything up-to-date` — it emits no
-  push event and starts no workflow.
+  push to `main`) also cuts only `android-dev.<run#>`, `prerelease:true`, Play
+  **internal draft**, reusing staging's version and notes without a paid call.
+  No branch push creates `android-v*`, a stable GitHub Release, or a production
+  Play release. Both upload attempts and the internal read-back use this boundary.
+- **Explicit production route — held:** only an `android-v*` **tag push** or
+  `workflow_dispatch` on that tag can select stable GitHub/Play production.
+  Manual branch runs, PRs, and unsupported events never publish. Existing-tag
+  dispatch restores saved release notes and fails closed if they are missing.
 
 Source gates (enforced as required status checks):
 
@@ -55,23 +33,15 @@ Source gates (enforced as required status checks):
 
 ## Tag / release namespaces
 
-Per-platform prefixes keep the Releases page unambiguous:
+Only `android-dev.<run#>` is automatic on staging/main. `android-v<x.y.z>` is
+reserved for deliberate approved production. No active desktop/iOS publisher
+exists; `desktop-dev.*` is an allowed internal namespace if a separately
+approved desktop target returns, not a reason to restore obsolete workflows.
 
-| Platform | Production tag        | Dev (prerelease) tag      | Trigger of dev build |
-|----------|-----------------------|---------------------------|----------------------|
-| Android  | `android-v<x.y.z>`    | `android-dev.<run#>`      | push to `staging`    |
-| Desktop  | `desktop-v<x.y.z>`    | `desktop-dev.<run#>`      | push to `staging`    |
-| iOS      | _(no release yet)_    | _(no release yet)_        | —                    |
-
-- Desktop production tags are auto-bumped on a push to `main` from the latest
-  matching tag.
-- Android versions are chosen by Claude (see below). Older Android tags are the
+- Android versions are chosen at internal creation (see below). Older tags are the
   two-part `android-v0.149` form; they normalise to `0.149.0` so numbering stays
   continuous. Android seeds from a legacy bare `v*` tag if no `android-v*`
   exists yet.
-- iOS is CI-only: it builds the JTTYAFKit test suite and an unsigned simulator
-  build to prove it compiles. A distributable `.ipa` needs an Apple Developer
-  cert + provisioning profile / TestFlight, which are not wired up yet.
 
 ## Android versioning + release notes (AI-assisted)
 
@@ -104,13 +74,29 @@ Ported from Sorrel's `play-beta.yml`. On a push to `staging` the Android
    preserves the actual Google track response. A verified draft is not a claim
    of tester rollout, review approval, enrollment or propagation.
 
-On the later push to `main` the job looks for the newest `android-dev.*` tag
-that is an ancestor of `HEAD` and not already shipped, reads the version and
-notes back out of those markers, and releases `android-v<x.y.z>` with the same
-notes — so when that tag is later shipped to Play, production ships exactly what
-the internal testers ran. If no such candidate exists (or it pre-dates the markers) Claude
-decides on `main` instead. An `android-v<x.y.z>` that already exists is stepped
-by a patch until free.
+To inspect the **current** internal state without another build or upload, run
+`Android CI & Release` on the selected branch with `inspect_internal=true`.
+This mode skips all build/release jobs and GETs only
+`applications/radio.ks3ckc.jttyaf/tracks/internal/releases` using the existing
+authorized Play account. No edit is created or committed, so it does not join
+the publishing queue or require a publishing pause. Normal production queue
+selection, credential grants and merge/review protections remain unchanged.
+
+The `play-internal-current` artifact records Google's release summaries and UTC
+read time. The API returns at most 20 non-obsolete releases; absence is not proof
+of historical nonexistence. It exposes lifecycle, releaseName and active version
+codes, not versionName or exact notes. PUBLISHED can include partial or halted
+rollout; a draft is not tester availability. The check does not require a draft,
+since a manual Console action may have changed its lifecycle. It never rolls
+out or promotes anything; the owner's manual Console rollout hold still applies.
+Leave the input false for normal workflow behavior.
+
+On the later push to `main` the job looks for the newest reachable `android-dev.*`
+candidate newer than the stable baseline, reads its version and notes from the
+markers, and creates another **internal** `android-dev.<run#>` with that SemVer.
+If no usable candidate exists, use a deterministic patch bump and PR-title notes
+without calling Claude. The run number distinguishes releases without changing
+the promoted version or reserving a production tag.
 
 `versionCode` is unchanged: still `GITHUB_RUN_NUMBER + 1000`.
 
@@ -120,6 +106,16 @@ and has a self-test (`--self-test`).
 **Secret:** `ANTHROPIC_API_KEY` (repository secret). Without it, or if the API
 call fails, the run annotates a warning, takes a **patch** bump, and uses the
 PR titles as the notes — a release is never blocked on the AI step.
+
+**Paid-call boundary:** at most one Anthropic request, only on attempt 1 of
+internal creation (`staging` push). No API retries or server-side fallback.
+Promotions and tag/manual shipping reuse the saved staging/release notes.
+Workflow reruns never call Anthropic again: an already-created internal
+candidate is the baseline, so an unchanged rerun is build-only and keeps its
+release; if creation failed before saving the release, use deterministic
+patch/PR-title notes instead. Pinned versions continue to skip generation.
+This policy does not authorize any production action; the all-five-app testing
+and subsequent explicit production approval hold remains in force.
 
 ### Pinning the version or the notes by hand
 
@@ -141,7 +137,7 @@ are enforced by `release_notes.py pin` (unit-tested): the version must be a
 plain `x.y.z` **above the previous release version**, and the notes markers
 must not be empty — a bad pin fails the run with an `::error::` rather than
 silently falling back. On `main` a promoted staging candidate still takes
-precedence, so production ships exactly what the internal testers ran.
+precedence, preserving the version and notes the internal testers ran.
 
 ## Store listings
 
@@ -156,24 +152,66 @@ the store only when someone runs the publish on purpose:
   default mode is the read-only `dry-run`), or
 - locally: `python .github/scripts/publish_listings.py`.
 
-Listing copy and app builds ship on different cadences, and neither is tied to a
-`main` merge.
+Listing copy never publishes on a branch push; app internal drafts can.
 
-## One-time setup on GitHub (manual)
+## Safe first landing and workflow audit
 
-These cannot be done from a workflow file — do them in the repo settings:
+1. Independently review and merge the once-only notes PR #20 into `dev` first,
+   then the internal-only safeguard PR. Neither feature/dev push publishes.
+2. Review the normal **dev → staging** PR with both changes; keep
+   `enforce-source-is-dev`, Android gates and required reviews. Its new guarded
+   staging workflow may create only an internal prerelease/draft. Wait for its
+   CI and actual internal read-back; do not infer tester availability from an artifact.
+3. Review the resulting **staging → main** PR, including its entire resulting
+   workflow tree. Preserve `enforce-source-is-staging` and Android/review gates.
+   The `push` event uses the pushed tip's workflow, not the old main definition
+   ([GitHub workflow trigger rules](https://docs.github.com/en/actions/concepts/workflows-and-actions/workflows#workflow-triggers)).
+   The same tree carries the Android guard and the already-approved conversion's
+   desktop/iOS workflow deletions. There is no intermediate unguarded main push.
+   Recheck this against the actual reviewed merge tree if any branch advances.
+4. Do not merge the orphan-iOS draft #21 directly or waive its source gate. The
+   normal promotion already removes that orphan; #21 can then be superseded.
+   Patrick must inspect effective **main** rules and retire `iOS CI / ios-gate`
+   only if still required (and an orphan `desktop-gate` if required). Exposed
+   main checks currently show only Android/source gates; classic protection
+   reads return 403, so inaccessible exact rule IDs remain unverified.
+5. Existing queued/in-flight runs retain their old definitions; do not rerun or
+   cancel them. Before an owner lands promotion, inspect active old publishers
+   and Play edit activity. The scheduled watcher has a separate concurrency key
+   and may collide with a publisher's Play edit; it cannot commit a release.
 
-1. **Create the `staging` branch** from `dev`:
-   `git checkout dev && git pull && git checkout -b staging && git push -u origin staging`.
-2. **Branch protection for `staging`** → Require status checks →
-   add `Staging branch source gate / enforce-source-is-dev` (plus the platform
-   gates `android-gate`, `desktop-gate`, `ios-gate` as desired).
-3. **Branch protection for `main`** → Require status checks →
-   add `Main branch source gate / enforce-source-is-staging`. If the old
-   `enforce-source-is-dev` check was required on `main`, remove it — that gate
-   now lives on `staging`.
-4. **Play Console** → confirm the `PLAY_SERVICE_ACCOUNT_JSON` service account has
-   release permission on the **production** track (it previously only needed
-   internal). Two paths publish an AAB there: the manual workflow run on an
-   `android-v*` tag (the normal path for a release cut by a `main` merge) and a
-   plain `android-v*` tag push. `main` merges do not.
+| Workflow | Main-push effect after normal promotion |
+| --- | --- |
+| Android CI & Release | Only `android-dev.*`, prerelease true, Play internal draft; paid generation skipped on main/retry |
+| Legacy desktop / iOS | Absent from dev/staging and the promoted tree; old main desktop's automatic stable release is not retained |
+| Discord merge notify | Notification only; main/staging labeled internal, never a delivery verdict |
+| Discord Play track watch | Schedule/manual only; reads tracks via an abandoned edit, writes state branch/Discord, never commits an edit or updates tracks |
+| Play store listings | PR validation/manual only; no branch-push publication |
+| Agent instructions / native tests | Checks only |
+| Main / staging source gates | PR checks only; source requirements unchanged |
+
+All ten legacy-main workflow definitions and eight promoted definitions were
+inspected, including their scripts: no `workflow_run`, `workflow_call`, release
+event, repository-dispatch or workflow-dispatch publisher chain exists.
+
+## Executed release-policy checks
+
+`python3 -m unittest discover -s .github/scripts -p 'test_*.py'` executes the
+checked-in YAML's lane, tag and pre-publication Bash against 70 event/ref pairs
+in temporary Git repositories; no credentials, network or real publication.
+
+| Event/ref | Expected publication |
+| --- | --- |
+| PR (including tag-shaped refs) | None |
+| Push dev / feature / lookalike branches | None |
+| Push staging / main, changed app | `android-dev.61`, prerelease true, internal draft |
+| Push staging / main, unchanged app | None |
+| Push / manual dispatch on `android-v2.3.4` tag | Deliberate production route retained, not exercised |
+| Internal/desktop tags, manual branch runs | None |
+| workflow_run / release / schedule / repository_dispatch | None, even on production-shaped refs |
+
+Additional checks cover saved asymmetric SemVer, patch/pin fallback, ten invalid
+branch publication tuples, both Play upload status expressions, retired
+publishers/chains and 120 once-only paid-call contexts. Baseline controls execute
+old Android main routing and old desktop main tag selection: automatic stable
+main behavior must fail the new internal-only expectations.

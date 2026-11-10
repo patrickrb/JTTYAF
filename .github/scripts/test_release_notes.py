@@ -8,10 +8,16 @@ tag push, and the marker structure.
 import contextlib
 import copy
 import io
+import json
 import os
+from pathlib import Path
+import re
 import shutil
+import subprocess
 import tempfile
+import textwrap
 import unittest
+from unittest import mock
 
 import release_notes as rn
 
@@ -472,6 +478,70 @@ class PinMainTest(unittest.TestCase):
         self.assertFalse(os.path.exists(self.notes))
 
 
+class InternalInspectionTest(unittest.TestCase):
+    def test_read_preserves_lifecycle_and_codes_without_any_write_or_edit(self):
+        import publish_listings as pl
+        from test_publish_listings import FakeResponse
+
+        for state in ("DRAFT", "PUBLISHED", "NOT_SENT_FOR_REVIEW"):
+            with self.subTest(state=state), tempfile.TemporaryDirectory() as tmp:
+                payload = {"releases": [{"track": "internal", "releaseName": "1.0.2",
+                           "releaseLifecycleState": "RELEASE_LIFECYCLE_STATE_" + state,
+                           "activeArtifacts": [{"versionCode": 1033}]}]}
+                session = mock.Mock(spec=["get"])
+
+                def read(url, timeout=None):
+                    self.assertEqual(url, pl.API + "/applications/radio.ks3ckc.jttyaf/tracks/internal/releases")
+                    return FakeResponse(payload)
+
+                session.get = read
+                path = os.path.join(tmp, "read.json")
+                with mock.patch.object(pl, "play_session", return_value=session):
+                    rc = rn.main(["inspect-internal", "--report", path])
+                self.assertEqual(rc, 0)
+                with open(path) as f:
+                    report = json.load(f)
+                self.assertEqual(report["packageName"], "radio.ks3ckc.jttyaf")
+                self.assertEqual(report["response"], payload)
+                self.assertTrue(report["readSucceeded"])
+                self.assertIn("readAt", report)
+                self.assertNotIn("verified", report)  # Read is not exact draft/notes verification.
+                self.assertEqual(report["testerDeviceAvailability"], "not verified")
+
+    def test_empty_internal_list_is_reported_without_inventing_a_release(self):
+        import publish_listings as pl
+        from test_publish_listings import FakeResponse
+
+        with tempfile.TemporaryDirectory() as tmp:
+            session = mock.Mock(spec=["get"])
+            session.get.return_value = FakeResponse({})
+            path = os.path.join(tmp, "read.json")
+            with mock.patch.object(pl, "play_session", return_value=session):
+                self.assertEqual(rn.main(["inspect-internal", "--report", path]), 0)
+            with open(path) as f:
+                self.assertEqual(json.load(f)["response"], {})
+
+    def test_wrong_track_http_failure_or_auth_failure_is_not_reported_as_success(self):
+        import publish_listings as pl
+        from test_publish_listings import FakeResponse
+
+        for response in (FakeResponse({"releases": [{"track": "production"}]}),
+                         FakeResponse({}, 403), OSError("secret must not appear")):
+            with self.subTest(response=response), tempfile.TemporaryDirectory() as tmp:
+                session = mock.Mock(spec=["get"])
+                session.get.return_value = response
+                path = os.path.join(tmp, "read.json")
+                auth = ({"side_effect": response} if isinstance(response, Exception)
+                        else {"return_value": session})
+                with mock.patch.object(pl, "play_session", **auth):
+                    self.assertEqual(rn.main(["inspect-internal", "--report", path]), 1)
+                with open(path) as f:
+                    report = json.load(f)
+                self.assertFalse(report["readSucceeded"])
+                self.assertNotIn("response", report)
+                self.assertNotIn("secret must not appear", json.dumps(report))
+
+
 class InternalReleaseTest(unittest.TestCase):
     def test_exact_draft_is_verified_alongside_an_older_release(self):
         track = {"track": "internal", "releases": [
@@ -501,6 +571,212 @@ class InternalReleaseTest(unittest.TestCase):
         for track in ({"track": "internal"}, {"track": "production", "releases": []}, {}):
             with self.subTest(track=track), self.assertRaises(ValueError):
                 rn.validate_internal_release(track, "1.2.3", 1047, "Better CAT recovery.")
+
+
+class ReleaseBillingPolicyTest(unittest.TestCase):
+    def test_paid_generation_is_only_first_internal_creation(self):
+        workflow = (Path(__file__).parents[1] / "workflows/android.yml").read_text()
+        condition = re.search(
+            r"id: ai\n(?: *#.*\n)* *if: >-\n((?:          .*\n)+)", workflow
+        ).group(1)
+        for key, name in (("steps.lane.outputs.lane", "lane"),
+                          ("github.run_attempt", "attempt"),
+                          ("steps.changes.outputs.android_changed", "changed"),
+                          ("steps.candidate.outputs.found", "candidate"),
+                          ("steps.pin.outputs.version", "pin")):
+            condition = condition.replace(key, name)
+        condition = " ".join(condition.split()).replace("&&", "and").replace("||", "or")
+        for lane in ("dev", "promote", "production", "tag", "none"):
+            for attempt in (1, 2, 5):
+                for changed in ("true", "false"):
+                    for candidate in ("true", "false"):
+                        for pin in ("", "1.2.3"):
+                            context = dict(lane=lane, attempt=attempt, changed=changed,
+                                           candidate=candidate, pin=pin)
+                            with self.subTest(**context):
+                                allowed = eval(condition, {"__builtins__": {}}, context)
+                                self.assertEqual(allowed, lane == "dev" and attempt == 1
+                                                 and changed == "true"
+                                                 and candidate == "false" and pin == "")
+
+
+class ReleaseRoutingTest(unittest.TestCase):
+    """Execute the workflow's actual Bash, without credentials or publishers."""
+
+    workflow = (Path(__file__).parents[1] / "workflows/android.yml").read_text()
+
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.root = Path(temp.name)
+        subprocess.run(["git", "init", "--quiet", temp.name], check=True)
+        scripts = self.root / ".github/scripts"
+        scripts.mkdir(parents=True)
+        shutil.copy(Path(__file__).with_name("android-next-version.sh"), scripts)
+
+    def step(self, step_id):
+        return next(block for block in re.split(r"^      - name: ", self.workflow, flags=re.M)
+                    if re.search(rf"^        id: {step_id}$", block, re.M))
+
+    def run_step(self, step_id, event, ref, **overrides):
+        output = self.root / "output"
+        output.write_text("")
+        env = dict(PATH=os.environ["PATH"], GITHUB_EVENT_NAME=event, GITHUB_REF=ref,
+                   GITHUB_REF_NAME=ref.rsplit("/", 1)[-1], GITHUB_RUN_NUMBER="61",
+                   GITHUB_OUTPUT=str(output), ANDROID_CHANGED="true", PREV_TAG="",
+                   PREV_VERSION="3.14.15", CAND_FOUND="true", CAND_TAG="android-dev.60",
+                   CAND_VERSION="7.12.34", PIN_VERSION="", PIN_NOTES="false",
+                   BUMP="patch", BUMP_SOURCE="deterministic fallback")
+        env.update(overrides)
+        script = textwrap.dedent(self.step(step_id).split("        run: |\n", 1)[1])
+        result = subprocess.run(["bash", "-c", script], cwd=self.root, env=env,
+                                capture_output=True, text=True)
+        return result, dict(line.split("=", 1) for line in output.read_text().splitlines())
+
+    def route(self, event, ref, **overrides):
+        result, lane = self.run_step("lane", event, ref)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        result, release = self.run_step("tag", event, ref, LANE=lane["lane"], **overrides)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return release
+
+    def test_event_ref_truth_table(self):
+        refs = ("refs/heads/main", "refs/heads/staging", "refs/heads/dev",
+                "refs/heads/feature/test", "refs/heads/main-extra",
+                "refs/heads/android-v2.3.4", "refs/tags/android-v2.3.4",
+                "refs/tags/android-dev.60", "refs/tags/desktop-v2.3.4",
+                "refs/pull/22/merge")
+        for event in ("pull_request", "push", "workflow_dispatch", "workflow_run",
+                      "release", "schedule", "repository_dispatch"):
+            for ref in refs:
+                with self.subTest(event=event, ref=ref):
+                    release = self.route(event, ref)
+                    internal = event == "push" and ref in ("refs/heads/main", "refs/heads/staging")
+                    production = event in ("push", "workflow_dispatch") and ref == "refs/tags/android-v2.3.4"
+                    self.assertEqual(release["should_release"], str(internal or production).lower())
+                    self.assertEqual(release["release_tag"], "android-dev.61" if internal else
+                                     "android-v2.3.4" if production else "")
+                    self.assertEqual(release["is_prerelease"], str(internal).lower())
+                    self.assertEqual(release["play_track"], "internal" if internal else
+                                     "production" if production else "")
+                    if internal or production:
+                        self.assertEqual(release["version_name"], "7.12.34" if internal else "2.3.4")
+                    result, _ = self.run_step("boundary", event, ref,
+                                             RELEASE_TAG=release["release_tag"],
+                                             PRERELEASE=release["is_prerelease"],
+                                             PLAY_TRACK=release["play_track"])
+                    self.assertEqual(result.returncode == 0, internal or production)
+
+    def test_main_and_staging_without_app_changes_do_not_release(self):
+        for branch in ("main", "staging"):
+            release = self.route("push", f"refs/heads/{branch}", ANDROID_CHANGED="false")
+            self.assertEqual(release["should_release"], "false")
+            self.assertEqual(release["release_tag"], "")
+            self.assertEqual(release["play_track"], "")
+
+    def test_missing_candidate_uses_patch_or_pin_without_stable_tag(self):
+        for branch in ("main", "staging"):
+            for pin, expected in (("", "3.14.16"), ("9.2.1", "9.2.1")):
+                with self.subTest(branch=branch, pin=pin):
+                    release = self.route("push", f"refs/heads/{branch}",
+                                         CAND_FOUND="false", PIN_VERSION=pin)
+                    self.assertEqual(release["version_name"], expected)
+                    self.assertEqual(release["release_tag"], "android-dev.61")
+                    self.assertEqual(release["is_prerelease"], "true")
+
+    def test_boundary_rejects_old_main_and_partial_internal_outputs(self):
+        for branch in ("main", "staging"):
+            for tag, prerelease, track in (("android-v7.12.34", "false", ""),
+                                           ("android-v7.12.34", "false", "production"),
+                                           ("android-dev.61", "false", "internal"),
+                                           ("android-dev.61", "true", "production"),
+                                           ("android-dev.60", "true", "internal")):
+                with self.subTest(branch=branch, tag=tag, prerelease=prerelease, track=track):
+                    result, _ = self.run_step("boundary", "push", f"refs/heads/{branch}",
+                                             RELEASE_TAG=tag, PRERELEASE=prerelease, PLAY_TRACK=track)
+                    self.assertNotEqual(result.returncode, 0)
+
+    def test_publishers_and_retry_use_internal_draft_and_checked_outputs(self):
+        # Execute the actual Actions expressions that wire both upload attempts.
+        def evaluate(expression, **context):
+            expression = expression.removeprefix("${{ ").removesuffix(" }}")
+            for key, value in context.items():
+                expression = expression.replace(key, repr(value))
+            return eval(expression.replace("&&", "and").replace("||", "or"), {"__builtins__": {}})
+
+        for step_id in ("play_publish", "play_publish_retry"):
+            block = self.step(step_id)
+            for track, expected in (("internal", "draft"), ("production", "completed")):
+                status = re.search(r"^          status: (.*)$", block, re.M).group(1)
+                self.assertEqual(evaluate(status, **{"steps.tag.outputs.play_track": track}), expected)
+            self.assertIn("track: ${{ steps.tag.outputs.play_track }}", block)
+        self.assertIn("prerelease: ${{ steps.tag.outputs.is_prerelease == 'true' }}", self.workflow)
+        self.assertLess(self.workflow.index("id: boundary"), self.workflow.index("name: Create GitHub Release"))
+        self.assertIn("if: steps.tag.outputs.play_track == 'internal' && steps.tag.outputs.should_release == 'true'",
+                      self.workflow.split("name: Verify the internal draft in Google Play", 1)[1])
+
+    def test_retired_publishers_and_chained_release_triggers_stay_absent(self):
+        workflows = Path(__file__).parents[1] / "workflows"
+        for retired in ("desktop.yml", "ios.yml"):
+            self.assertFalse((workflows / retired).exists(), retired)
+        for path in workflows.glob("*.yml"):
+            self.assertNotRegex(path.read_text(), r"(?m)^  (workflow_run|workflow_call|repository_dispatch|release):")
+
+    def test_inspection_never_builds_publishes_or_takes_the_publisher_lock(self):
+        parts = re.split(r"^  ([\w-]+):\n", self.workflow.split("jobs:\n", 1)[1], flags=re.M)
+        jobs = dict(zip(parts[1::2], parts[2::2]))
+        conditions = {job: re.search(r"^    if: (.*)$", jobs[job], re.M).group(1)
+                      for job in ("inspect-internal", "detect", "build")}
+        concurrency = re.search(r"^  group: >-\n((?:    .*\n)+)", self.workflow, re.M).group(1)
+
+        def evaluate(expression, context):
+            expression = " ".join(expression.split()).removeprefix("${{").removesuffix("}}")
+            for key, value in context.items():
+                expression = expression.replace(key, repr(value))
+            expression = re.sub(r"!(?!=)", "not ", expression).replace("&&", "and").replace("||", "or")
+            return eval(expression, {"__builtins__": {}, "always": lambda: True,
+                                     "startsWith": lambda value, prefix: value.startswith(prefix),
+                                     "format": lambda pattern, value: pattern.format(value)})
+
+        for event in ("push", "pull_request", "workflow_dispatch"):
+            for ref in ("refs/heads/main", "refs/heads/staging", "refs/heads/dev", "refs/tags/android-v2.3.4"):
+                for inspect in (True, False):
+                    with self.subTest(event=event, ref=ref, inspect=inspect):
+                        context = {"github.event_name": event, "github.ref": ref,
+                                   "github.run_id": "61", "inputs.inspect_internal": inspect}
+                        read_only = event == "workflow_dispatch" and inspect
+                        self.assertEqual(evaluate(conditions["inspect-internal"], context), read_only)
+                        detected = evaluate(conditions["detect"], context)
+                        self.assertEqual(detected, not read_only)
+                        context.update({"needs.detect.outputs.run": "true" if detected else "",
+                                        "needs.test.result": "skipped" if read_only else "success"})
+                        self.assertEqual(evaluate(conditions["build"], context), not read_only)
+                        publisher = (event == "push" and ref != "refs/heads/dev"
+                                     or event == "workflow_dispatch" and not inspect
+                                     and ref == "refs/tags/android-v2.3.4")
+                        self.assertEqual(evaluate(concurrency, context), "play-publish" if publisher else "build-61")
+        self.assertIn("needs: [detect, test]", jobs["build"])
+        self.assertIn("release_notes.py inspect-internal", jobs["inspect-internal"])
+
+    def test_discord_main_and_staging_are_internal_notifications(self):
+        workflow = (Path(__file__).parents[1] / "workflows/discord-merge-notify.yml").read_text()
+        script = textwrap.dedent(workflow.split("        run: |\n", 1)[1])
+        capture = self.root / "curl-arguments"
+        for branch, color, emoji in (("main", 3447003, "📦"), ("staging", 3447003, "📦"),
+                                      ("dev", 15105570, "🔧")):
+            env = dict(PATH=os.environ["PATH"], WEBHOOK_URL="https://example.invalid/webhook",
+                       BRANCH=branch, SHA="1234567890", COMMIT_MSG="Internal candidate",
+                       AUTHOR="Fixture", COMMIT_URL="https://example.invalid/commit",
+                       COMPARE_URL="https://example.invalid/compare", REPO="fixture/JTTYAF",
+                       CAPTURE=str(capture))
+            result = subprocess.run(["bash", "-c", 'curl() { printf "%s\\n" "$@" > "$CAPTURE"; }\n' + script],
+                                    cwd=self.root, env=env, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            args = capture.read_text().splitlines()
+            payload = json.loads(args[args.index("-d") + 1])["embeds"][0]
+            self.assertEqual(payload["color"], color)
+            self.assertTrue(payload["title"].startswith(emoji))
+            self.assertIn(f"merged into {branch}", payload["title"])
 
 
 if __name__ == "__main__":
