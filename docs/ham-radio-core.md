@@ -1,10 +1,16 @@
 # JTTYAF shared-core integration
 
-JTTYAF vendors **ham-radio-core 0.1.0** unchanged at `ham-radio-core/`.
+JTTYAF vendors **ham-radio-core 0.2.0** unchanged at `ham-radio-core/`.
 Canonical source is `patrickrb/FT8AF/ham-radio-core`; its README documents the
-contracts and update procedure, and `SHA256SUMS` pins all 13 payload files.
+contracts and update procedure, and `SHA256SUMS` pins all 17 payload files.
 Supplied archive SHA-256:
-`02e632964a4e619438bdc300abac7b45bb924cd2a7e1e3bc00695878c2c6dcba`.
+`3553fc43df7cf3c0b62381831fa4a31e7bc56abae2186a9e7834778a3f8afc36`.
+Manifest SHA-256:
+`f22d32ab5a230bf86857b43a42501d521080658555dc12fde511fa9b83c8bd07`.
+Canonical extraction: [FT8AF PR994](https://github.com/patrickrb/FT8AF/pull/994),
+commit `7806cd8e33096ced5d19c5509d06f1df95518ab9`. Consumer integration must
+follow canonical FT8AF maintainer integration; parallel validation is not
+permission to merge the consumer first.
 
 The original readiness and core exports targeted the obsolete FT8AF import
 `556c89427d0fcd1bfb8ac77ea83be290cefd298a`, still on `origin/main` at integration.
@@ -26,8 +32,14 @@ Provenance (exports downloaded with Amp file-transfer tools):
 uses a project dependency, not a published artifact. USB capture imports core
 `FirDecimator`, `RationalResampler` and `UacAudioFormats`; TX upsampling uses
 the same rational kernel. CAT watchdog consumers import core `CatLiveness`.
-All four current implementations and duplicate test classes match the original
+The four original implementations and duplicate test classes match the original
 export baseline. Their algorithms/APIs are unchanged; tests move with the core.
+Version 0.2.0 also moves `CivFrameSplitter` and `CatLineSplitter` plus their
+34 unchanged tests into core. All 11 rig consumers import the core classes
+directly; no app-local copies or wrappers remain. Package/public visibility and
+core-only Javadoc are the only differences from JTTYAF's previous splitters.
+CI-V's existing remainder cap/resynchronization, text terminators/empty frames,
+character decoding and per-transport remainder ownership remain unchanged.
 Unique CAT lifecycle/polling and TX upsampling tests remain in the app.
 Native/JNI code, USB ownership, PTT, mode codec and timing stay app-owned.
 
