@@ -334,33 +334,47 @@ def build_arg_parser():
 
 
 def run_inspect_internal(args):
-    """GET committed release summaries only: no temporary edit or mutation."""
+    """Read exact internal status through an edit that is deleted, never committed."""
     from datetime import datetime, timezone
     from publish_listings import API, DEFAULT_PACKAGE, play_session
 
-    url = "%s/applications/%s/tracks/internal/releases" % (API, DEFAULT_PACKAGE)
+    url = "%s/applications/%s/edits" % (API, DEFAULT_PACKAGE)
     report = {"packageName": DEFAULT_PACKAGE, "track": "internal", "requestUrl": url,
               "readAt": datetime.now(timezone.utc).isoformat(), "readSucceeded": False,
+              "editDeleted": None,
               "testerDeviceAvailability": "not verified",
-              "note": "At most 20 non-obsolete releases. Published may include partial or halted rollout."}
+              "note": "Track status is not tester enrollment, processing or device availability; release name is not APK versionName."}
     try:
-        response = play_session().get(url, timeout=30)
+        session = play_session()
+        response = session.post(url, timeout=30)
         response.raise_for_status()
-        payload = response.json()
-        releases = payload.get("releases", [])
-        if any(release.get("track") != "internal" for release in releases):
-            raise ValueError("non-internal response")
-        report["response"] = payload
-        report["readSucceeded"] = True
+        edit_url = "%s/%s" % (url, response.json()["id"])
+        report["editUrl"] = edit_url
+        report["editDeleted"] = False
+        try:
+            response = session.get(edit_url + "/tracks/internal", timeout=30)
+            response.raise_for_status()
+            payload = response.json()
+            if payload.get("track") != "internal":
+                raise ValueError("non-internal response")
+            report["response"] = payload
+            report["readSucceeded"] = True
+        finally:
+            try:
+                session.delete(edit_url, timeout=30).raise_for_status()
+                report["editDeleted"] = True
+            except Exception as exc:
+                report["cleanupErrorType"] = type(exc).__name__
+                print("::error::Internal inspection edit DELETE failed; inspect report before publishing.")
     except Exception as exc:
         # No arbitrary exception details, HTTP bodies, tokens or credentials.
         report["errorType"] = type(exc).__name__
     with open(args.report, "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2)
         f.write("\n")
-    print("Current internal read succeeded=%s; no edit or rollout; device availability not verified."
-          % report["readSucceeded"])
-    return 0 if report["readSucceeded"] else 1
+    print("Current internal read succeeded=%s; edit deleted=%s; no upload, commit or rollout."
+          % (report["readSucceeded"], report["editDeleted"]))
+    return 0 if report["readSucceeded"] and report["editDeleted"] else 1
 
 
 def run_verify_internal(args):

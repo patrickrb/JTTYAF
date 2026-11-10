@@ -106,13 +106,18 @@ jobs:
     name: Read current Play internal track (no publish)
     if: github.event_name == 'workflow_dispatch' && inputs.inspect_internal
     runs-on: ubuntu-latest
+    # Inspection opens an uncommitted edit, so share the publisher lock without
+    # running any publisher. The workflow-level inspection group remains unique.
+    concurrency:
+      group: play-publish
+      cancel-in-progress: false
     permissions:
       contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Read committed internal releases (GET only)
+      - name: Read exact internal status and delete the inspection edit
         env:
           PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
         run: |

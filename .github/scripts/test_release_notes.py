@@ -479,66 +479,94 @@ class PinMainTest(unittest.TestCase):
 
 
 class InternalInspectionTest(unittest.TestCase):
-    def test_read_preserves_lifecycle_and_codes_without_any_write_or_edit(self):
+    def inspect(self, payload, get_status=200, delete_status=204, auth_error=None,
+                post_status=200):
         import publish_listings as pl
         from test_publish_listings import FakeResponse
 
-        for state in ("DRAFT", "PUBLISHED", "NOT_SENT_FOR_REVIEW"):
-            with self.subTest(state=state), tempfile.TemporaryDirectory() as tmp:
-                payload = {"releases": [{"track": "internal", "releaseName": "1.0.2",
-                           "releaseLifecycleState": "RELEASE_LIFECYCLE_STATE_" + state,
-                           "activeArtifacts": [{"versionCode": 1033}]}]}
-                session = mock.Mock(spec=["get"])
+        # Only this endpoint allowlist exists: a track mutation, upload, commit,
+        # other-track read or missing cleanup fails rather than silently mocking it.
+        base = pl.API + "/applications/radio.ks3ckc.jttyaf/edits"
+        pending = []
 
-                def read(url, timeout=None):
-                    self.assertEqual(url, pl.API + "/applications/radio.ks3ckc.jttyaf/tracks/internal/releases")
-                    return FakeResponse(payload)
+        def create(url, timeout=None):
+            self.assertEqual(url, base)
+            if post_status == 200:
+                pending.append("inspection-edit")
+            return FakeResponse({"id": "inspection-edit"}, post_status)
 
-                session.get = read
-                path = os.path.join(tmp, "read.json")
-                with mock.patch.object(pl, "play_session", return_value=session):
-                    rc = rn.main(["inspect-internal", "--report", path])
+        def read(url, timeout=None):
+            self.assertEqual(url, base + "/inspection-edit/tracks/internal")
+            self.assertEqual(pending, ["inspection-edit"])
+            if isinstance(get_status, Exception):
+                raise get_status
+            return FakeResponse(payload, get_status)
+
+        def delete(url, timeout=None):
+            self.assertEqual(url, base + "/inspection-edit")
+            pending.pop()
+            if isinstance(delete_status, Exception):
+                raise delete_status
+            return FakeResponse({}, delete_status)
+
+        session = mock.Mock(spec=["post", "get", "delete"])
+        session.post = create
+        session.get = read
+        session.delete = delete
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "read.json")
+            auth = ({"side_effect": auth_error} if auth_error else {"return_value": session})
+            with mock.patch.object(pl, "play_session", **auth):
+                rc = rn.main(["inspect-internal", "--report", path])
+            with open(path) as f:
+                report = json.load(f)
+        self.assertEqual(pending, [])
+        return rc, report
+
+    def test_read_preserves_exact_status_and_codes_without_mutating_a_track(self):
+        for state in ("draft", "completed", "inProgress", "halted"):
+            with self.subTest(state=state):
+                payload = {"track": "internal", "releases": [
+                    {"name": "1.0.1", "status": "completed", "versionCodes": ["1029"]},
+                    {"name": "1.0.2", "status": state, "versionCodes": ["1033"]}]}
+                rc, report = self.inspect(payload)
                 self.assertEqual(rc, 0)
-                with open(path) as f:
-                    report = json.load(f)
                 self.assertEqual(report["packageName"], "radio.ks3ckc.jttyaf")
                 self.assertEqual(report["response"], payload)
                 self.assertTrue(report["readSucceeded"])
+                self.assertTrue(report["editDeleted"])
                 self.assertIn("readAt", report)
-                self.assertNotIn("verified", report)  # Read is not exact draft/notes verification.
                 self.assertEqual(report["testerDeviceAvailability"], "not verified")
 
     def test_empty_internal_list_is_reported_without_inventing_a_release(self):
-        import publish_listings as pl
-        from test_publish_listings import FakeResponse
-
-        with tempfile.TemporaryDirectory() as tmp:
-            session = mock.Mock(spec=["get"])
-            session.get.return_value = FakeResponse({})
-            path = os.path.join(tmp, "read.json")
-            with mock.patch.object(pl, "play_session", return_value=session):
-                self.assertEqual(rn.main(["inspect-internal", "--report", path]), 0)
-            with open(path) as f:
-                self.assertEqual(json.load(f)["response"], {})
+        rc, report = self.inspect({"track": "internal"})
+        self.assertEqual(rc, 0)
+        self.assertEqual(report["response"], {"track": "internal"})
+        self.assertTrue(report["editDeleted"])
 
     def test_wrong_track_http_failure_or_auth_failure_is_not_reported_as_success(self):
-        import publish_listings as pl
-        from test_publish_listings import FakeResponse
-
-        for response in (FakeResponse({"releases": [{"track": "production"}]}),
-                         FakeResponse({}, 403), OSError("secret must not appear")):
-            with self.subTest(response=response), tempfile.TemporaryDirectory() as tmp:
-                session = mock.Mock(spec=["get"])
-                session.get.return_value = response
-                path = os.path.join(tmp, "read.json")
-                auth = ({"side_effect": response} if isinstance(response, Exception)
-                        else {"return_value": session})
-                with mock.patch.object(pl, "play_session", **auth):
-                    self.assertEqual(rn.main(["inspect-internal", "--report", path]), 1)
-                with open(path) as f:
-                    report = json.load(f)
+        for kwargs in ({"payload": {"track": "production"}},
+                       {"payload": {}, "get_status": 403},
+                       {"payload": {}, "get_status": OSError("secret must not appear")},
+                       {"payload": {}, "post_status": 403},
+                       {"payload": {}, "auth_error": OSError("secret must not appear")}):
+            with self.subTest(kwargs=kwargs):
+                rc, report = self.inspect(**kwargs)
+                self.assertEqual(rc, 1)
                 self.assertFalse(report["readSucceeded"])
                 self.assertNotIn("response", report)
+                self.assertNotIn("secret must not appear", json.dumps(report))
+                created = "auth_error" not in kwargs and "post_status" not in kwargs
+                self.assertEqual(report["editDeleted"], True if created else None)
+
+    def test_delete_failure_fails_inspection_even_after_a_successful_read(self):
+        for failure in (403, OSError("secret must not appear")):
+            with self.subTest(failure=failure):
+                rc, report = self.inspect({"track": "internal"}, delete_status=failure)
+                self.assertEqual(rc, 1)
+                self.assertTrue(report["readSucceeded"])
+                self.assertFalse(report["editDeleted"])
+                self.assertIn("cleanupErrorType", report)
                 self.assertNotIn("secret must not appear", json.dumps(report))
 
 

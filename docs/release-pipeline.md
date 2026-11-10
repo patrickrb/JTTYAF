@@ -76,19 +76,24 @@ Ported from Sorrel's `play-beta.yml`. On a push to `staging` the Android
 
 To inspect the **current** internal state without another build or upload, run
 `Android CI & Release` on the selected branch with `inspect_internal=true`.
-This mode skips all build/release jobs and GETs only
-`applications/radio.ks3ckc.jttyaf/tracks/internal/releases` using the existing
-authorized Play account. No edit is created or committed, so it does not join
-the publishing queue or require a publishing pause. Normal production queue
-selection, credential grants and merge/review protections remain unchanged.
+This mode skips all build/release jobs. Using the existing authorized hosted
+Play account, it opens an uncommitted edit, GETs only that edit's
+`tracks/internal`, then DELETEs the edit in a finally block. It never uploads,
+changes a track or commits an edit. The inspection job shares `play-publish`
+concurrency so its edit cannot overlap this repository's release/listing edits.
+Credential grants, environment/review protections and publishing selectors
+remain unchanged. Do not dispatch unreviewed inspection changes.
 
-The `play-internal-current` artifact records Google's release summaries and UTC
-read time. The API returns at most 20 non-obsolete releases; absence is not proof
-of historical nonexistence. It exposes lifecycle, releaseName and active version
-codes, not versionName or exact notes. PUBLISHED can include partial or halted
-rollout; a draft is not tester availability. The check does not require a draft,
-since a manual Console action may have changed its lifecycle. It never rolls
-out or promotes anything; the owner's manual Console rollout hold still applies.
+The `play-internal-current` artifact preserves the exact internal track response,
+UTC read time and `editDeleted` verdict. It exposes release names, versionCodes,
+notes and actual `draft`/`completed`/`inProgress`/`halted` status, not APK
+versionName or tester/device availability. A failed DELETE fails the workflow
+and records its error type and edit URL; report it before any later publisher
+runs, rather than treating the successful GET as successful cleanup. Failure
+before edit creation leaves `editDeleted:null`. A completed track still does not
+prove tester enrollment, eligibility, processing or installation. The check does
+not require a draft and never rolls out or promotes anything; the owner's manual
+Console rollout hold still applies.
 Leave the input false for normal workflow behavior.
 
 On the later push to `main` the job looks for the newest reachable `android-dev.*`
