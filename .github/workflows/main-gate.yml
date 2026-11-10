@@ -2,7 +2,7 @@ name: Main branch source gate
 
 # Enforces release discipline: PRs targeting main must come from `staging`.
 # The promotion path is feature -> dev -> staging -> main; only staging -> main
-# is allowed as the "promote to production" step, gated by branch protection
+# is allowed as the internal main promotion, gated by branch protection
 # requiring this status check.
 #
 # To enforce it: GitHub → Settings → Branches → Branch protection rule for
