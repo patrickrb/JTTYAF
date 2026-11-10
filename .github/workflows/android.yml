@@ -59,10 +59,16 @@ on:
     branches: [main, staging, dev]
   # The manual production ship step. Run this workflow with an android-v<x.y.z>
   # tag selected as the ref to build that tag and upload it to the Play
-  # production track. No branch push creates that tag. No inputs: the
-  # ref picker already names the release, and taking the version from anywhere
+  # production track. No branch push creates that tag. The ref picker names
+  # the release, and taking the version from anywhere
   # else would let a run publish an AAB built from a different commit.
+  # inspect_internal instead reads Play only, skipping ALL build/release jobs.
   workflow_dispatch:
+    inputs:
+      inspect_internal:
+        description: 'Read current internal track only; no build, upload or rollout'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -89,15 +95,50 @@ concurrency:
           || github.ref == 'refs/heads/staging'
           || startsWith(github.ref, 'refs/tags/android-v')))
       || (github.event_name == 'workflow_dispatch'
-        && startsWith(github.ref, 'refs/tags/android-v')))
+        && !inputs.inspect_internal && startsWith(github.ref, 'refs/tags/android-v')))
       && 'play-publish'
       || format('build-{0}', github.run_id)
     }}
   cancel-in-progress: false
 
 jobs:
+  inspect-internal:
+    name: Read current Play internal track (no publish)
+    if: github.event_name == 'workflow_dispatch' && inputs.inspect_internal
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Read committed internal releases (GET only)
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet google-auth requests
+          python3 .github/scripts/release_notes.py inspect-internal \
+            --report play-internal-current.json
+          {
+            echo '## Current Play internal track (read-only)'
+            echo 'No upload, version bump, edit commit or rollout. Draft is not tester availability.'
+            echo '```json'
+            cat play-internal-current.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Retain the authenticated read-back
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: play-internal-current
+          path: play-internal-current.json
+          if-no-files-found: error
+
   detect:
     name: Detect Android changes
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.inspect_internal) }}
     runs-on: ubuntu-latest
     outputs:
       run: ${{ steps.decide.outputs.run }}
