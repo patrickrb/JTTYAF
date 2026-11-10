@@ -322,12 +322,45 @@ def build_arg_parser():
     e.add_argument("--pr-list-env", default="PR_LIST",
                    help="env var holding the AI step's PR list (default PR_LIST)")
 
+    i = sub.add_parser("inspect-internal", help="read current internal releases without publishing")
+    i.add_argument("--report", required=True, help="credential-free current Google track response")
+
     v = sub.add_parser("verify-internal", help="read back the committed internal draft from Play")
     v.add_argument("--version", required=True)
     v.add_argument("--code", type=int, required=True)
     v.add_argument("--notes", required=True)
     v.add_argument("--report", required=True, help="credential-free Google track response and verdict")
     return ap
+
+
+def run_inspect_internal(args):
+    """GET committed release summaries only: no temporary edit or mutation."""
+    from datetime import datetime, timezone
+    from publish_listings import API, DEFAULT_PACKAGE, play_session
+
+    url = "%s/applications/%s/tracks/internal/releases" % (API, DEFAULT_PACKAGE)
+    report = {"packageName": DEFAULT_PACKAGE, "track": "internal", "requestUrl": url,
+              "readAt": datetime.now(timezone.utc).isoformat(), "readSucceeded": False,
+              "testerDeviceAvailability": "not verified",
+              "note": "At most 20 non-obsolete releases. Published may include partial or halted rollout."}
+    try:
+        response = play_session().get(url, timeout=30)
+        response.raise_for_status()
+        payload = response.json()
+        releases = payload.get("releases", [])
+        if any(release.get("track") != "internal" for release in releases):
+            raise ValueError("non-internal response")
+        report["response"] = payload
+        report["readSucceeded"] = True
+    except Exception as exc:
+        # No arbitrary exception details, HTTP bodies, tokens or credentials.
+        report["errorType"] = type(exc).__name__
+    with open(args.report, "w", encoding="utf-8") as f:
+        json.dump(report, f, indent=2)
+        f.write("\n")
+    print("Current internal read succeeded=%s; no edit or rollout; device availability not verified."
+          % report["readSucceeded"])
+    return 0 if report["readSucceeded"] else 1
 
 
 def run_verify_internal(args):
@@ -417,6 +450,8 @@ def run_pin(args):
 
 def main(argv=None):
     args = build_arg_parser().parse_args(argv)
+    if args.command == "inspect-internal":
+        return run_inspect_internal(args)
     if args.command == "verify-internal":
         return run_verify_internal(args)
     if args.command == "ensure-notes":

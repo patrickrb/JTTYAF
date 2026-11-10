@@ -8,10 +8,12 @@ tag push, and the marker structure.
 import contextlib
 import copy
 import io
+import json
 import os
 import shutil
 import tempfile
 import unittest
+from unittest import mock
 
 import release_notes as rn
 
@@ -470,6 +472,70 @@ class PinMainTest(unittest.TestCase):
         self.assertIn("::error::", out)
         self.assertEqual(gh, "")
         self.assertFalse(os.path.exists(self.notes))
+
+
+class InternalInspectionTest(unittest.TestCase):
+    def test_read_preserves_lifecycle_and_codes_without_any_write_or_edit(self):
+        import publish_listings as pl
+        from test_publish_listings import FakeResponse
+
+        for state in ("DRAFT", "PUBLISHED", "NOT_SENT_FOR_REVIEW"):
+            with self.subTest(state=state), tempfile.TemporaryDirectory() as tmp:
+                payload = {"releases": [{"track": "internal", "releaseName": "1.0.2",
+                           "releaseLifecycleState": "RELEASE_LIFECYCLE_STATE_" + state,
+                           "activeArtifacts": [{"versionCode": 1033}]}]}
+                session = mock.Mock(spec=["get"])
+
+                def read(url, timeout=None):
+                    self.assertEqual(url, pl.API + "/applications/radio.ks3ckc.jttyaf/tracks/internal/releases")
+                    return FakeResponse(payload)
+
+                session.get = read
+                path = os.path.join(tmp, "read.json")
+                with mock.patch.object(pl, "play_session", return_value=session):
+                    rc = rn.main(["inspect-internal", "--report", path])
+                self.assertEqual(rc, 0)
+                with open(path) as f:
+                    report = json.load(f)
+                self.assertEqual(report["packageName"], "radio.ks3ckc.jttyaf")
+                self.assertEqual(report["response"], payload)
+                self.assertTrue(report["readSucceeded"])
+                self.assertIn("readAt", report)
+                self.assertNotIn("verified", report)  # Read is not exact draft/notes verification.
+                self.assertEqual(report["testerDeviceAvailability"], "not verified")
+
+    def test_empty_internal_list_is_reported_without_inventing_a_release(self):
+        import publish_listings as pl
+        from test_publish_listings import FakeResponse
+
+        with tempfile.TemporaryDirectory() as tmp:
+            session = mock.Mock(spec=["get"])
+            session.get.return_value = FakeResponse({})
+            path = os.path.join(tmp, "read.json")
+            with mock.patch.object(pl, "play_session", return_value=session):
+                self.assertEqual(rn.main(["inspect-internal", "--report", path]), 0)
+            with open(path) as f:
+                self.assertEqual(json.load(f)["response"], {})
+
+    def test_wrong_track_http_failure_or_auth_failure_is_not_reported_as_success(self):
+        import publish_listings as pl
+        from test_publish_listings import FakeResponse
+
+        for response in (FakeResponse({"releases": [{"track": "production"}]}),
+                         FakeResponse({}, 403), OSError("secret must not appear")):
+            with self.subTest(response=response), tempfile.TemporaryDirectory() as tmp:
+                session = mock.Mock(spec=["get"])
+                session.get.return_value = response
+                path = os.path.join(tmp, "read.json")
+                auth = ({"side_effect": response} if isinstance(response, Exception)
+                        else {"return_value": session})
+                with mock.patch.object(pl, "play_session", **auth):
+                    self.assertEqual(rn.main(["inspect-internal", "--report", path]), 1)
+                with open(path) as f:
+                    report = json.load(f)
+                self.assertFalse(report["readSucceeded"])
+                self.assertNotIn("response", report)
+                self.assertNotIn("secret must not appear", json.dumps(report))
 
 
 class InternalReleaseTest(unittest.TestCase):

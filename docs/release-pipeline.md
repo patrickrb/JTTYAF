@@ -104,6 +104,23 @@ Ported from Sorrel's `play-beta.yml`. On a push to `staging` the Android
    preserves the actual Google track response. A verified draft is not a claim
    of tester rollout, review approval, enrollment or propagation.
 
+To inspect the **current** internal state without another build or upload, run
+`Android CI & Release` on the selected branch with `inspect_internal=true`.
+This mode skips all build/release jobs and GETs only
+`applications/radio.ks3ckc.jttyaf/tracks/internal/releases` using the existing
+authorized Play account. No edit is created or committed, so it does not join
+the publishing queue or require a publishing pause. Normal production queue
+selection, credential grants and merge/review protections remain unchanged.
+
+The `play-internal-current` artifact records Google's release summaries and UTC
+read time. The API returns at most 20 non-obsolete releases; absence is not proof
+of historical nonexistence. It exposes lifecycle, releaseName and active version
+codes, not versionName or exact notes. PUBLISHED can include partial or halted
+rollout; a draft is not tester availability. The check does not require a draft,
+since a manual Console action may have changed its lifecycle. It never rolls
+out or promotes anything; the owner's manual Console rollout hold still applies.
+Leave the input false for normal workflow behavior.
+
 On the later push to `main` the job looks for the newest `android-dev.*` tag
 that is an ancestor of `HEAD` and not already shipped, reads the version and
 notes back out of those markers, and releases `android-v<x.y.z>` with the same
